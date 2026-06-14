@@ -120,20 +120,26 @@ def kb_settings():
 def fmt_signal(sig):
     d = "🟢" if sig.get("direction")=="LONG" else "🔴"
     ce = {"HIGH":"🔥","MEDIUM":"⚡","LOW":"🔹"}.get(sig.get("confidence",""),"")
-    sc = sig.get("score",0)
-    bar = "█"*sc + "░"*(11-sc)
+    sc   = sig.get("score", 0)
+    filled = int(round(sc))
+    bar  = "█" * filled + "░" * (10 - filled)
+    sl_pct = ""
+    entry = sig.get("entry", 0)
+    sl    = sig.get("stop_loss", 0)
+    if entry and sl:
+        sl_pct = f"  ({round(abs(entry-sl)/entry*100, 2)}%)"
     return (
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🪙 <b>{sig.get('symbol')}</b>  {d} <b>{sig.get('direction')}</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"💰 <b>ورود:</b>  <code>{sig.get('entry')}</code>\n"
-        f"🔴 <b>استاپ:</b> <code>{sig.get('stop_loss')}</code>\n\n"
+        f"💰 <b>ورود:</b>  <code>{entry}</code>\n"
+        f"🔴 <b>استاپ:</b> <code>{sl}</code>{sl_pct}\n\n"
         f"🎯 <b>تارگت‌ها:</b>\n"
         f"  🟡 TP1: <code>{sig.get('tp1')}</code>\n"
         f"  🟠 TP2: <code>{sig.get('tp2')}</code>\n"
         f"  🟢 TP3: <code>{sig.get('tp3')}</code>\n\n"
         f"📊 R/R: <code>{sig.get('rr')}R</code>  {ce} <b>{sig.get('confidence')}</b>\n"
-        f"🎯 امتیاز: <code>{sc}/11</code>  [{bar}]\n"
+        f"🎯 امتیاز: <code>{sc}/10</code>  [{bar}]\n"
     )
 
 def fmt_welcome(name, adm):

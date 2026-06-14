@@ -191,21 +191,34 @@ def analyze_btc(df_4h, df_1h, df_15m) -> dict:
 # مرحله ۲: تحلیل ارز
 # ─────────────────────────────────────────
 
-def _score_coin(s1h, s15m, s5m, btc_bias, direction) -> tuple:
-    """نمره‌دهی ۱۰ برای یک ارز در جهت مشخص"""
+def _score_coin(s4h, s1h, s15m, s5m, btc_bias, direction) -> tuple:
+    """نمره‌دهی ۱۰ برای یک ارز در جهت مشخص — شامل تایم‌فریم ۴H"""
     score   = 0.0
     reasons = []
     price   = s5m["price"]
     is_long = (direction == "LONG")
 
-    # ── ۱. همسویی با BTC (1.5 امتیاز) ──
+    # ── ۰. روند ۴H ارز (2 امتیاز — بیشترین وزن) ──
+    trend_4h = s4h["ema"]["trend"]
+    if trend_4h == ("bullish" if is_long else "bearish"):
+        score += 2.0
+        reasons.append(f"✅ 4H روند {'صعودی' if is_long else 'نزولی'} تأیید")
+    elif trend_4h == "neutral":
+        score += 0.5
+        reasons.append("⚠️ 4H روند خنثی")
+    else:
+        score -= 1.0
+        reasons.append(f"❌ 4H روند مخالف ({trend_4h}) — کسر امتیاز")
+
+    # ── ۱. همسویی با BTC (1 امتیاز) ──
     if btc_bias == ("bullish" if is_long else "bearish"):
-        score += 1.5
+        score += 1.0
         reasons.append(f"✅ BTC هم‌جهت ({btc_bias})")
     elif btc_bias == "neutral":
-        score += 0.5
+        score += 0.3
         reasons.append("⚠️ BTC خنثی")
     else:
+        score -= 0.5
         reasons.append(f"❌ BTC مخالف ({btc_bias})")
 
     # ── ۲. EMA Stack مرتب 1H (1.5 امتیاز) ──
@@ -445,6 +458,7 @@ def analyze(
 
     price = 0.0
     try:
+        _, s4h  = _compute(df_4h)
         _, s1h  = _compute(df_1h)
         _, s15m = _compute(df_15m)
         _, s5m  = _compute(df_5m)
@@ -471,9 +485,13 @@ def analyze(
     if adx_15m and adx_15m < 15:
         return _no(symbol, price, f"ADX خیلی ضعیف ({adx_15m:.0f}) — بازار رنج محض")
 
+    # ── فیلتر ۴H ارز — مهم‌ترین فیلتر ──
+    trend_4h = s4h["ema"]["trend"]
+    rsi_4h   = s4h["rsi"]["value"]
+
     # ── نمره هر دو جهت ──
-    l_score, l_reasons = _score_coin(s1h, s15m, s5m, btc_bias, "LONG")
-    s_score, s_reasons = _score_coin(s1h, s15m, s5m, btc_bias, "SHORT")
+    l_score, l_reasons = _score_coin(s4h, s1h, s15m, s5m, btc_bias, "LONG")
+    s_score, s_reasons = _score_coin(s4h, s1h, s15m, s5m, btc_bias, "SHORT")
 
     # انتخاب جهت
     if l_score >= s_score and l_score >= MIN_SCORE:
@@ -487,6 +505,33 @@ def analyze(
         return _no(symbol, price,
             f"نمره ناکافی: {best:.1f}/10 (حداقل {MIN_SCORE})",
             [f"LONG: {l_score}/10", f"SHORT: {s_score}/10"])
+
+    # ── فیلتر سخت: 4H ارز باید هم‌جهت باشه ──
+    if direction == "LONG" and trend_4h == "bearish":
+        # اگه RSI 4H هم خیلی پایینه یا OB قوی هست استثنا بده
+        bull_ob_4h = s4h["ob"]["nearest_bull_ob"]
+        price_in_4h_ob = s4h["ob"]["price_in_bull_ob"]
+        if not price_in_4h_ob:
+            return _no(symbol, price,
+                f"4H روند نزولی ({trend_4h}) + قیمت خارج از OB — LONG ممنوع",
+                reasons)
+        else:
+            reasons.append("⚠️ 4H نزولی اما داخل OB — ریسک بالا")
+            score = round(score * 0.85, 1)  # ۱۵٪ کسر
+
+    if direction == "SHORT" and trend_4h == "bullish":
+        price_in_4h_ob = s4h["ob"]["price_in_bear_ob"]
+        if not price_in_4h_ob:
+            return _no(symbol, price,
+                f"4H روند صعودی ({trend_4h}) + قیمت خارج از OB — SHORT ممنوع",
+                reasons)
+        else:
+            reasons.append("⚠️ 4H صعودی اما داخل Bearish OB — ریسک بالا")
+            score = round(score * 0.85, 1)
+
+    # بررسی دوباره نمره بعد از کسر ۴H
+    if score < MIN_SCORE:
+        return _no(symbol, price, f"نمره بعد از فیلتر 4H: {score}/10", reasons)
 
     # ── چک R:R ──
     if rr < MIN_RR:
@@ -509,7 +554,7 @@ def analyze(
     prob = _probability(score, rr, btc_score)
 
     return Signal(
-        symbol=symbol, direction=direction, timeframe="15m/5m",
+        symbol=symbol, direction=direction, timeframe="4H/1H/15m",
         price=price, score=score, probability=prob, confidence=conf,
         entry=round(entry,4), stop_loss=round(sl,4),
         tp1=round(tp1,4), tp2=round(tp2,4), tp3=round(tp3,4),

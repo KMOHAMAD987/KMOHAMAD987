@@ -8,6 +8,7 @@ import time
 import threading
 import sys
 import os
+import json
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -37,9 +38,25 @@ MIN_CONFIDENCE  = "MEDIUM"   # حداقل کانفیدنس برای ارسال
 MIN_SCORE       = 6          # حداقل امتیاز از ۱۱
 MIN_RR          = 1.5        # حداقل R/R
 
-# جلوگیری از سیگنال تکراری (نماد → آخرین زمان سیگنال)
-last_signal_time: dict = {}
-SIGNAL_COOLDOWN = 60 * 60   # ۱ ساعت فاصله بین سیگنال‌های یک نماد
+# cooldown دائمی — در فایل ذخیره می‌شه تا restart هم حفظ بشه
+SIGNAL_COOLDOWN = 90 * 60   # ۱.۵ ساعت فاصله بین سیگنال‌های یک نماد
+_COOLDOWN_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/cooldown.json")
+
+
+def _load_cooldown() -> dict:
+    os.makedirs(os.path.dirname(_COOLDOWN_FILE), exist_ok=True)
+    if not os.path.exists(_COOLDOWN_FILE):
+        return {}
+    try:
+        with open(_COOLDOWN_FILE) as f:
+            return json.load(f)
+    except:
+        return {}
+
+
+def _save_cooldown(cd: dict):
+    with open(_COOLDOWN_FILE, "w") as f:
+        json.dump(cd, f)
 
 
 # ─────────────────────────────────────────
@@ -80,9 +97,10 @@ def get_btc_bias() -> tuple:
 def scan_symbol(symbol: str, btc_bias: str) -> None:
     """تحلیل کامل یک نماد و ارسال سیگنال اگه شرایط داشت"""
 
-    # کولداون چک
+    # کولداون چک — از فایل می‌خونه (restart-safe)
     now = time.time()
-    last = last_signal_time.get(symbol, 0)
+    cooldown_db = _load_cooldown()
+    last = cooldown_db.get(symbol, 0)
     if now - last < SIGNAL_COOLDOWN:
         remaining = int((SIGNAL_COOLDOWN - (now - last)) / 60)
         print(f"  ⏳ {symbol}: کولداون {remaining} دقیقه مانده")
@@ -130,7 +148,7 @@ def scan_symbol(symbol: str, btc_bias: str) -> None:
         return
 
     # ✅ سیگنال معتبر
-    print(f"  ✅ {symbol}: سیگنال {signal.direction} | امتیاز {signal.score}/11 | R/R {signal.rr}")
+    print(f"  ✅ {symbol}: سیگنال {signal.direction} | امتیاز {signal.score}/10 | R/R {signal.rr}")
 
     # ذخیره در tracker
     trade_id = save_signal(signal)
@@ -138,7 +156,9 @@ def scan_symbol(symbol: str, btc_bias: str) -> None:
     # ارسال به تلگرام
     ok = send_signal(signal)
     if ok:
-        last_signal_time[symbol] = now
+        # cooldown رو در فایل ذخیره کن
+        cooldown_db[symbol] = now
+        _save_cooldown(cooldown_db)
         print(f"  📨 تلگرام ارسال شد")
     else:
         print(f"  ❌ ارسال تلگرام ناموفق")
