@@ -404,19 +404,29 @@ def broadcast_signal(signal):
 
 def broadcast_tp_sl(trade, hit):
     users = load_users()
-    emoji = {"TP1":"🟡","TP2":"🟠","TP3":"🏆","SL":"❌"}.get(hit,"📍")
-    pnl   = trade.get("pnl_r",0)
-    text  = (
+    emoji = {"TP1":"🟡","TP2":"🟠","TP3":"🏆","SL":"❌"}.get(hit, "📍")
+    pnl   = trade.get("pnl_r", 0)
+    pnl_str = f"+{pnl}R" if pnl > 0 else f"{pnl}R"
+
+    # فاصله ورود تا خروج
+    entry = trade.get("entry", 0)
+    exit_p = trade.get("exit_price") or trade.get(f"tp{hit[-1].lower()}" if hit.startswith("TP") else "stop_loss", 0)
+
+    text = (
         f"{emoji} <b>{hit} زده شد!</b>\n\n"
         f"🪙 <b>{trade.get('symbol')}</b> | {trade.get('direction')}\n"
-        f"📍 ورود: <code>{trade.get('entry')}</code>\n"
-        f"💰 نتیجه: <code>{'+' if pnl>0 else ''}{pnl}R</code>\n"
+        f"📍 ورود: <code>{entry}</code>\n"
+        f"💰 نتیجه: <code>{pnl_str}</code>\n"
     )
-    nk = f"notify_{'tp1' if hit=='TP1' else 'tp2' if hit=='TP2' else 'sl'}"
+
+    # کلید نوتیف: TP3 هم مثل TP2 ارسال بشه
+    nk_map = {"TP1": "notify_tp1", "TP2": "notify_tp2", "TP3": "notify_tp2", "SL": "notify_sl"}
+    nk = nk_map.get(hit, "notify_tp1")
+
     for uid, user in users.items():
         if not user.get("active") and uid not in ADMIN_IDS: continue
         if not user.get(nk, True): continue
-        if trade.get("symbol") not in user.get("symbols",[]): continue
+        if trade.get("symbol") not in user.get("symbols", []): continue
         send(uid, text)
         time.sleep(0.05)
 

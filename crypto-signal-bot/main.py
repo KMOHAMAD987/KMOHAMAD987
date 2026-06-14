@@ -17,7 +17,7 @@ from data.bitunix_client import get_klines, get_ticker
 from signals.amir_strategy import analyze
 from signals.tracker import (
     save_signal, update_trade, get_open_trades,
-    expire_old_trades, get_winrate_report
+    expire_old_trades, get_winrate_report, get_trade_by_id
 )
 from telegram.bot import (
     send_signal, send_message,
@@ -190,7 +190,9 @@ def track_open_trades() -> None:
 
         if hit:
             print(f"  🎯 {symbol}: {hit} زده شد!")
-            send_tp_notification(trade, hit)
+            # trade آپدیت‌شده رو از DB بخون (pnl_r و status به‌روزه)
+            updated_trade = get_trade_by_id(tid)
+            send_tp_notification(updated_trade or trade, hit)
 
 
 # ─────────────────────────────────────────
