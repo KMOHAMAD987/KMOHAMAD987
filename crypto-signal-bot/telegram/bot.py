@@ -459,6 +459,34 @@ def process_update(update):
         handle_cb(str(cb["from"]["id"]), cb["id"], cb.get("data",""), cb["message"]["message_id"], cb.get("from",{}))
 
 
+# ── Alias توابع برای سازگاری با main.py ──
+
+def send_signal(signal) -> bool:
+    """ارسال سیگنال به همه کاربران فعال"""
+    sent = broadcast_signal(signal)
+    return sent > 0
+
+
+def send_message(text: str) -> bool:
+    """ارسال پیام فقط به ادمین‌ها"""
+    ok = False
+    for adm_id in ADMIN_IDS:
+        r = send(adm_id, text)
+        if r.get("ok"):
+            ok = True
+    return ok
+
+
+def send_tp_notification(trade: dict, hit: str):
+    """ارسال نوتیف TP/SL به همه کاربران"""
+    broadcast_tp_sl(trade, hit)
+
+
+def handle_commands():
+    """لوپ دریافت پیام و دستورات تلگرام"""
+    run()
+
+
 def run():
     print("🤖 ZandiBot Telegram شروع شد")
     r = requests.get(f"{BASE_URL}/getMe", timeout=10).json()

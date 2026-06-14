@@ -91,8 +91,12 @@ def add_rsi(df: pd.DataFrame, length: int = 14) -> pd.DataFrame:
     avg_gain = gain.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
 
-    rs  = avg_gain / avg_loss.replace(0, np.nan)
-    df["rsi"] = 100 - (100 / (1 + rs))
+    # وقتی avg_loss صفره یعنی روند کاملاً صعودیه → RSI=100
+    rsi = np.where(
+        avg_loss == 0, 100.0,
+        100 - (100 / (1 + avg_gain / avg_loss))
+    )
+    df["rsi"] = rsi
     return df
 
 
@@ -110,6 +114,10 @@ def rsi_signal(df: pd.DataFrame) -> dict:
     """
     rsi = df["rsi"].iloc[-1]
     prev_rsi = df["rsi"].iloc[-2]
+
+    # NaN check
+    if pd.isna(rsi): rsi = 50.0
+    if pd.isna(prev_rsi): prev_rsi = 50.0
 
     if rsi < 30:
         zone = "oversold"
