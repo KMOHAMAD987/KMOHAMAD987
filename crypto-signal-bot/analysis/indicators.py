@@ -91,12 +91,8 @@ def add_rsi(df: pd.DataFrame, length: int = 14) -> pd.DataFrame:
     avg_gain = gain.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
 
-    # وقتی avg_loss صفره یعنی روند کاملاً صعودیه → RSI=100
-    rsi = np.where(
-        avg_loss == 0, 100.0,
-        100 - (100 / (1 + avg_gain / avg_loss))
-    )
-    df["rsi"] = rsi
+    rs  = avg_gain / avg_loss.replace(0, np.nan)
+    df["rsi"] = 100 - (100 / (1 + rs))
     return df
 
 
@@ -114,10 +110,6 @@ def rsi_signal(df: pd.DataFrame) -> dict:
     """
     rsi = df["rsi"].iloc[-1]
     prev_rsi = df["rsi"].iloc[-2]
-
-    # NaN check
-    if pd.isna(rsi): rsi = 50.0
-    if pd.isna(prev_rsi): prev_rsi = 50.0
 
     if rsi < 30:
         zone = "oversold"
@@ -144,39 +136,6 @@ def rsi_signal(df: pd.DataFrame) -> dict:
 # ─────────────────────────────────────────
 # Volume Analysis
 # ─────────────────────────────────────────
-
-def add_atr(df: pd.DataFrame, length: int = 14) -> pd.DataFrame:
-    """ATR واقعی با روش Wilder"""
-    high, low, prev_close = df["high"], df["low"], df["close"].shift(1)
-    tr = pd.concat([
-        high - low,
-        (high - prev_close).abs(),
-        (low  - prev_close).abs(),
-    ], axis=1).max(axis=1)
-    df["atr"] = tr.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
-    return df
-
-
-def add_adx(df: pd.DataFrame, length: int = 14) -> pd.DataFrame:
-    """ADX برای تشخیص قدرت روند"""
-    high, low, prev_close = df["high"], df["low"], df["close"].shift(1)
-    prev_high, prev_low = df["high"].shift(1), df["low"].shift(1)
-
-    plus_dm  = (high - prev_high).clip(lower=0)
-    minus_dm = (prev_low - low).clip(lower=0)
-    plus_dm[plus_dm < minus_dm]  = 0
-    minus_dm[minus_dm < plus_dm] = 0
-
-    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
-    atr_s     = tr.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
-    plus_di   = 100 * plus_dm.ewm(alpha=1/length, min_periods=length, adjust=False).mean() / atr_s
-    minus_di  = 100 * minus_dm.ewm(alpha=1/length, min_periods=length, adjust=False).mean() / atr_s
-    dx        = (100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)).fillna(0)
-    df["adx"]       = dx.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
-    df["plus_di"]   = plus_di
-    df["minus_di"]  = minus_di
-    return df
-
 
 def add_volume_ma(df: pd.DataFrame, length: int = 20) -> pd.DataFrame:
     """میانگین حجم ۲۰ کندل"""
@@ -232,7 +191,7 @@ def volume_signal(df: pd.DataFrame) -> dict:
 # تابع اصلی — همه اندیکاتورها با هم
 # ─────────────────────────────────────────
 
-def compute_indicators(df: pd.DataFrame) -> tuple:
+def compute_indicators(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """
     دریافت دیتافریم خام → محاسبه همه اندیکاتورها → برگرداندن df + خلاصه
 
@@ -246,19 +205,12 @@ def compute_indicators(df: pd.DataFrame) -> tuple:
     df = add_emas(df)
     df = add_rsi(df)
     df = add_volume_ma(df)
-    df = add_atr(df)
-    df = add_adx(df)
 
-    last = df.iloc[-1]
     summary = {
         "ema":    ema_trend(df),
         "rsi":    rsi_signal(df),
         "volume": volume_signal(df),
-        "price":  round(last["close"], 4),
-        "atr":    round(last["atr"], 6) if not pd.isna(last["atr"]) else None,
-        "adx":    round(last["adx"], 2) if not pd.isna(last["adx"]) else None,
-        "plus_di":  round(last["plus_di"], 2) if not pd.isna(last["plus_di"]) else None,
-        "minus_di": round(last["minus_di"], 2) if not pd.isna(last["minus_di"]) else None,
+        "price":  round(df["close"].iloc[-1], 4),
     }
 
     return df, summary

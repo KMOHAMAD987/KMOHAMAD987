@@ -8,7 +8,6 @@ import time
 import threading
 import sys
 import os
-import json
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +16,7 @@ from data.bitunix_client import get_klines, get_ticker
 from signals.amir_strategy import analyze
 from signals.tracker import (
     save_signal, update_trade, get_open_trades,
-    expire_old_trades, get_winrate_report, get_trade_by_id
+    expire_old_trades, get_winrate_report
 )
 from telegram.bot import (
     send_signal, send_message,
@@ -34,29 +33,13 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
 SCAN_INTERVAL   = 15 * 60   # هر ۱۵ دقیقه اسکن
 TRACK_INTERVAL  = 60         # هر ۱ دقیقه TP/SL چک
 
-MIN_CONFIDENCE  = "LOW"      # حداقل کانفیدنس برای ارسال
-MIN_SCORE       = 6          # حداقل امتیاز
+MIN_CONFIDENCE  = "MEDIUM"   # حداقل کانفیدنس برای ارسال
+MIN_SCORE       = 6          # حداقل امتیاز از ۱۱
 MIN_RR          = 1.5        # حداقل R/R
 
-# cooldown — فاصله بین سیگنال‌های یک نماد
-SIGNAL_COOLDOWN = 60 * 60   # ۱ ساعت
-_COOLDOWN_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/cooldown.json")
-
-
-def _load_cooldown() -> dict:
-    os.makedirs(os.path.dirname(_COOLDOWN_FILE), exist_ok=True)
-    if not os.path.exists(_COOLDOWN_FILE):
-        return {}
-    try:
-        with open(_COOLDOWN_FILE) as f:
-            return json.load(f)
-    except:
-        return {}
-
-
-def _save_cooldown(cd: dict):
-    with open(_COOLDOWN_FILE, "w") as f:
-        json.dump(cd, f)
+# جلوگیری از سیگنال تکراری (نماد → آخرین زمان سیگنال)
+last_signal_time: dict = {}
+SIGNAL_COOLDOWN = 60 * 60   # ۱ ساعت فاصله بین سیگنال‌های یک نماد
 
 
 # ─────────────────────────────────────────
@@ -97,10 +80,9 @@ def get_btc_bias() -> tuple:
 def scan_symbol(symbol: str, btc_bias: str) -> None:
     """تحلیل کامل یک نماد و ارسال سیگنال اگه شرایط داشت"""
 
-    # کولداون چک — از فایل می‌خونه (restart-safe)
+    # کولداون چک
     now = time.time()
-    cooldown_db = _load_cooldown()
-    last = cooldown_db.get(symbol, 0)
+    last = last_signal_time.get(symbol, 0)
     if now - last < SIGNAL_COOLDOWN:
         remaining = int((SIGNAL_COOLDOWN - (now - last)) / 60)
         print(f"  ⏳ {symbol}: کولداون {remaining} دقیقه مانده")
@@ -148,7 +130,7 @@ def scan_symbol(symbol: str, btc_bias: str) -> None:
         return
 
     # ✅ سیگنال معتبر
-    print(f"  ✅ {symbol}: سیگنال {signal.direction} | امتیاز {signal.score}/10 | R/R {signal.rr}")
+    print(f"  ✅ {symbol}: سیگنال {signal.direction} | امتیاز {signal.score}/11 | R/R {signal.rr}")
 
     # ذخیره در tracker
     trade_id = save_signal(signal)
@@ -156,9 +138,7 @@ def scan_symbol(symbol: str, btc_bias: str) -> None:
     # ارسال به تلگرام
     ok = send_signal(signal)
     if ok:
-        # cooldown رو در فایل ذخیره کن
-        cooldown_db[symbol] = now
-        _save_cooldown(cooldown_db)
+        last_signal_time[symbol] = now
         print(f"  📨 تلگرام ارسال شد")
     else:
         print(f"  ❌ ارسال تلگرام ناموفق")
@@ -190,9 +170,7 @@ def track_open_trades() -> None:
 
         if hit:
             print(f"  🎯 {symbol}: {hit} زده شد!")
-            # trade آپدیت‌شده رو از DB بخون (pnl_r و status به‌روزه)
-            updated_trade = get_trade_by_id(tid)
-            send_tp_notification(updated_trade or trade, hit)
+            send_tp_notification(trade, hit)
 
 
 # ─────────────────────────────────────────

@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zandi — دستیار هوشمند سیگنال‌دهی کریپتو</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #020408;
+  --bg2:    #040810;
+  --bg3:    #060d18;
+  --bg4:    #091220;
+  --neon:   #00ffc8;
+  --neon2:  #00c8ff;
+  --gold:   #f7931a;
+  --gold2:  #ffc044;
+  --purple: #8b5cf6;
+  --red:    #ff3d6b;
+  --green:  #00ffc8;
+  --text:   #e2eeff;
+  --text2:  #4d6a8a;
+  --text3:  #8fa8c8;
+  --border: rgba(255,255,255,0.06);
+  --card:   rgba(255,255,255,0.025);
+  --glow-n: rgba(0,255,200,0.15);
+  --glow-g: rgba(247,147,26,0.15);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--neon);border-radius:2px;}
+
+/* ═══ CANVAS ═══ */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ═══ NAV ═══ */
+nav {
+  position: fixed;
+  top: 1.2rem; left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  width: calc(100% - 3rem);
+  max-width: 1100px;
+  background: rgba(4,8,16,0.7);
+  backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid rgba(0,255,200,0.1);
+  border-radius: 20px;
+  padding: .9rem 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0 40px rgba(0,0,0,0.5), 0 0 1px rgba(0,255,200,0.2) inset;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  text-decoration: none;
+}
+
+.logo-orb {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 900;
+  box-shadow: 0 0 20px rgba(247,147,26,0.5), 0 0 60px rgba(247,147,26,0.2);
+  position: relative;
+}
+
+.logo-orb::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--gold), transparent, var(--neon));
+  opacity: 0.4;
+  z-index: -1;
+}
+
+.logo-text {
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--text);
+}
+
+.logo-text span { color: var(--neon); }
+
+.logo-sub {
+  font-size: .7rem;
+  color: var(--text2);
+  font-weight: 400;
+  margin-right: .3rem;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 1.8rem;
+  list-style: none;
+}
+
+.nav-menu a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: .85rem;
+  font-weight: 500;
+  transition: color .3s;
+  position: relative;
+}
+
+.nav-menu a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0; right: 0;
+  height: 1px;
+  background: var(--neon);
+  transform: scaleX(0);
+  transition: transform .3s;
+}
+
+.nav-menu a:hover { color: var(--neon); }
+.nav-menu a:hover::after { transform: scaleX(1); }
+
+.nav-right { display: flex; gap: .7rem; align-items: center; }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(0,255,200,0.2);
+  color: var(--neon);
+  padding: .5rem 1.2rem;
+  border-radius: 10px;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: 'Vazirmatn', sans-serif;
+  transition: all .3s;
+}
+.btn-ghost:hover { background: rgba(0,255,200,0.08); border-color: var(--neon); }
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #000;
+  padding: .5rem 1.4rem;
+  border-radius: 10px;
+  font-size: .82rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: 'Vazirmatn', sans-serif;
+  border: none;
+  transition: all .3s;
+  box-shadow: 0 0 20px rgba(247,147,26,0.35);
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 0 35px rgba(247,147,26,0.55); }
+
+/* ═══ HERO ═══ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: 9rem 2rem 5rem;
+  overflow: hidden;
+}
+
+/* Grid lines */
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,200,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.025) 1px, transparent 1px);
+  background-size: 70px 70px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 10%, transparent 80%);
+}
+
+/* Glow orbs */
+.orb1 {
+  position: absolute;
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(0,255,200,0.04) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+
+.orb2 {
+  position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(247,147,26,0.06) 0%, transparent 70%);
+  top: 20%; right: 10%;
+  pointer-events: none;
+  animation: orbFloat 6s ease-in-out infinite;
+}
+
+.orb3 {
+  position: absolute;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+  bottom: 20%; left: 8%;
+  pointer-events: none;
+  animation: orbFloat 8s ease-in-out infinite reverse;
+}
+
+@keyframes orbFloat {
+  0%,100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.05); }
+}
+
+.hero-inner {
+  text-align: center;
+  max-width: 820px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── LIVE BADGE ── */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: rgba(0,255,200,0.06);
+  border: 1px solid rgba(0,255,200,0.2);
+  color: var(--neon);
+  padding: .4rem 1.2rem;
+  border-radius: 50px;
+  font-size: .8rem;
+  font-weight: 600;
+  margin-bottom: 2.5rem;
+  animation: badgeFade 1s ease;
+}
+
+.live-dot {
+  width: 7px; height: 7px;
+  background: var(--neon);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--neon);
+  animation: livePulse 1.5s infinite;
+}
+
+@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.3;transform:scale(.6);} }
+@keyframes badgeFade { from{opacity:0;transform:translateY(-10px);} to{opacity:1;transform:translateY(0);} }
+
+/* ── BIG TITLE ── */
+.hero-title {
+  font-size: clamp(2.8rem, 6vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin-bottom: 1.5rem;
+  animation: titleUp 1s ease .2s both;
+}
+
+.ht-1 { display: block; color: var(--text); }
+.ht-2 {
+  display: block;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 40%, var(--neon) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.ht-3 { display: block; color: rgba(255,255,255,0.35); font-weight: 300; font-size: .55em; letter-spacing: 0; margin-top: .4rem; }
+
+@keyframes titleUp { from{opacity:0;transform:translateY(40px);} to{opacity:1;transform:translateY(0);} }
+
+.hero-desc {
+  font-size: 1.05rem;
+  color: var(--text3);
+  line-height: 1.9;
+  max-width: 540px;
+  margin: 0 auto 3rem;
+  font-weight: 300;
+  animation: titleUp 1s ease .4s both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 4rem;
+  animation: titleUp 1s ease .6s both;
+}
+
+.btn-hero-main {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #000;
+  padding: 1rem 2.5rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: all .3s;
+  box-shadow: 0 0 30px rgba(247,147,26,.4), 0 8px 32px rgba(0,0,0,.5);
+  font-family: 'Vazirmatn', sans-serif;
+  border: none; cursor: pointer;
+}
+.btn-hero-main:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 0 50px rgba(247,147,26,.6), 0 20px 60px rgba(0,0,0,.6); }
+
+.btn-hero-sec {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--text3);
+  padding: 1rem 2.5rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all .3s;
+  font-family: 'Vazirmatn', sans-serif;
+}
+.btn-hero-sec:hover { background: rgba(0,255,200,.06); border-color: rgba(0,255,200,.3); color: var(--neon); transform: translateY(-4px); }
+
+/* ── 3D BITCOIN ── */
+.btc-scene {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 0 auto 3rem;
+  animation: titleUp 1s ease .1s both;
+  perspective: 1000px;
+}
+
+.btc-glow-outer {
+  position: absolute;
+  inset: -40px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(247,147,26,0.15) 0%, transparent 65%);
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+@keyframes glowPulse { 0%,100%{opacity:.6;transform:scale(1);} 50%{opacity:1;transform:scale(1.15);} }
+
+.btc-coin {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 220px; height: 220px;
+  animation: coinFloat 4s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes coinFloat {
+  0%   { transform: translate(-50%,-50%) translateY(0px) rotateY(0deg); }
+  25%  { transform: translate(-50%,-50%) translateY(-15px) rotateY(15deg); }
+  50%  { transform: translate(-50%,-50%) translateY(-25px) rotateY(0deg); }
+  75%  { transform: translate(-50%,-50%) translateY(-15px) rotateY(-15deg); }
+  100% { transform: translate(-50%,-50%) translateY(0px) rotateY(0deg); }
+}
+
+.btc-coin svg {
+  width: 100%; height: 100%;
+  filter: drop-shadow(0 20px 60px rgba(247,147,26,.8)) drop-shadow(0 0 30px rgba(247,147,26,.4));
+}
+
+/* Floating indicators */
+.btc-float-1 {
+  position: absolute;
+  top: 15px; right: -10px;
+  background: rgba(0,255,200,.1);
+  border: 1px solid rgba(0,255,200,.35);
+  color: var(--neon);
+  padding: .4rem .9rem;
+  border-radius: 10px;
+  font-size: .8rem;
+  font-weight: 700;
+  backdrop-filter: blur(20px);
+  animation: floatBadge1 3s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.btc-float-2 {
+  position: absolute;
+  bottom: 25px; left: -20px;
+  background: rgba(8,13,20,.9);
+  border: 1px solid rgba(255,255,255,.1);
+  padding: .5rem 1rem;
+  border-radius: 12px;
+  font-size: .78rem;
+  backdrop-filter: blur(20px);
+  animation: floatBadge2 3.5s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.btc-float-2 .price { font-weight: 700; font-size: .9rem; }
+.btc-float-2 .lbl { color: var(--text2); font-size: .7rem; }
+
+.btc-float-3 {
+  position: absolute;
+  top: 40%; right: -40px;
+  background: rgba(247,147,26,.1);
+  border: 1px solid rgba(247,147,26,.3);
+  color: var(--gold);
+  padding: .35rem .8rem;
+  border-radius: 8px;
+  font-size: .75rem;
+  font-weight: 700;
+  backdrop-filter: blur(20px);
+  animation: floatBadge1 4s ease-in-out infinite .5s;
+  white-space: nowrap;
+}
+
+@keyframes floatBadge1 { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+@keyframes floatBadge2 { 0%,100%{transform:translateY(0);} 50%{transform:translateY(10px);} }
+
+/* ── STATS ROW ── */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .8rem;
+  max-width: 720px;
+  margin: 0 auto;
+  animation: titleUp 1s ease .8s both;
+}
+
+.hstat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.2rem 1rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all .3s;
+}
+.hstat:hover { border-color: rgba(0,255,200,.2); transform: translateY(-3px); }
+.hstat::after {
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background: linear-gradient(90deg,transparent,var(--neon),transparent);
+  opacity:.3;
+}
+.hstat-num {
+  font-size: 1.7rem; font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--neon));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  display: block;
+}
+.hstat-lbl { font-size: .72rem; color: var(--text2); margin-top: .2rem; }
+
+/* ═══ TICKER ═══ */
+.ticker-wrap {
+  position: relative; z-index: 2;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: rgba(4,8,16,.8);
+  backdrop-filter: blur(10px);
+  padding: .6rem 0;
+}
+
+.ticker-track {
+  display: flex; gap: 3rem;
+  animation: tickerScroll 25s linear infinite;
+  white-space: nowrap;
+}
+
+@keyframes tickerScroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+
+.t-item {
+  display: inline-flex; align-items: center; gap: .5rem;
+  font-size: .8rem; color: var(--text2);
+}
+.t-item b { color: var(--text); }
+.t-item .up { color: var(--green); }
+.t-item .dn { color: var(--red); }
+
+/* ═══ SECTION COMMON ═══ */
+.section { max-width: 1100px; margin: 0 auto; padding: 7rem 2rem; position: relative; z-index: 2; }
+
+.s-tag {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: rgba(0,255,200,.06); border: 1px solid rgba(0,255,200,.15);
+  color: var(--neon); padding: .3rem 1rem; border-radius: 50px;
+  font-size: .73rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; margin-bottom: .8rem;
+}
+
+.s-title {
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  font-weight: 900; line-height: 1.15; letter-spacing: -1px;
+}
+.s-title .accent {
+  background: linear-gradient(135deg, var(--gold), var(--neon));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.s-desc { color: var(--text2); font-size: .95rem; line-height: 1.9; font-weight: 300; }
+
+/* ═══ FEATURES ═══ */
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem; margin-top: 3rem;
+}
+
+.feat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 2rem 1.5rem;
+  transition: all .5s cubic-bezier(.4,0,.2,1);
+  position: relative; overflow: hidden;
+}
+
+.feat-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at top left, rgba(0,255,200,.06) 0%, transparent 60%);
+  opacity: 0; transition: opacity .5s;
+}
+
+.feat-card:hover { border-color: rgba(0,255,200,.2); transform: translateY(-8px); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+.feat-card:hover::before { opacity: 1; }
+
+.f-icon {
+  width: 50px; height: 50px; border-radius: 14px;
+  background: rgba(0,255,200,.07); border: 1px solid rgba(0,255,200,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin-bottom: 1.2rem;
+  transition: all .3s;
+}
+.feat-card:hover .f-icon { background: rgba(0,255,200,.12); box-shadow: 0 0 20px rgba(0,255,200,.15); }
+
+.f-title { font-size: .95rem; font-weight: 700; margin-bottom: .5rem; }
+.f-desc { color: var(--text2); font-size: .85rem; line-height: 1.7; font-weight: 300; }
+
+/* ═══ SIGNAL SECTION ═══ */
+.sig-wrap {
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.sig-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem; align-items: center;
+}
+
+.sig-card {
+  background: var(--bg3);
+  border: 1px solid rgba(0,255,200,.12);
+  border-radius: 24px;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 80px rgba(0,0,0,.5), 0 0 1px rgba(0,255,200,.1) inset;
+}
+
+.sig-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon), transparent);
+}
+
+.sig-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at top, rgba(0,255,200,.04) 0%, transparent 60%);
+}
+
+.sig-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.5rem; padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 1;
+}
+
+.sig-sym { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; }
+
+.sig-badge {
+  padding: .3rem 1rem; border-radius: 8px;
+  font-size: .8rem; font-weight: 700;
+}
+.sig-badge.long { background: rgba(0,255,200,.1); color: var(--green); border: 1px solid rgba(0,255,200,.25); }
+.sig-badge.short { background: rgba(255,61,107,.1); color: var(--red); border: 1px solid rgba(255,61,107,.25); }
+
+.sig-rows { position: relative; z-index: 1; }
+.sig-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .6rem 0; border-bottom: 1px solid rgba(255,255,255,.03);
+  font-size: .88rem;
+}
+.sig-row:last-child { border: none; }
+.sig-lbl { color: var(--text2); }
+.sig-val { font-weight: 700; }
+.sig-val.g { color: var(--green); }
+.sig-val.r { color: var(--red); }
+.sig-val.o { color: var(--gold); }
+
+.score-bar {
+  display: flex; gap: 3px; margin-top: 1.2rem;
+  position: relative; z-index: 1;
+}
+.score-s {
+  height: 4px; flex: 1; border-radius: 2px;
+  background: rgba(255,255,255,.07);
+}
+.score-s.on { background: var(--neon); box-shadow: 0 0 6px rgba(0,255,200,.5); }
+
+/* ── CHECKLIST ── */
+.checks { display: flex; flex-direction: column; gap: .6rem; margin-top: 2rem; }
+.ch {
+  display: flex; align-items: flex-start; gap: .8rem;
+  padding: .8rem 1rem; background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; font-size: .85rem; transition: all .3s;
+}
+.ch:hover { border-color: rgba(0,255,200,.2); background: rgba(0,255,200,.03); }
+.ch-ic { font-size: .9rem; flex-shrink: 0; margin-top: .1rem; }
+.ch-t strong { display: block; font-size: .85rem; margin-bottom: .1rem; }
+.ch-t span { color: var(--text2); font-size: .78rem; font-weight: 300; }
+
+/* ═══ PRICING ═══ */
+.price-wrap {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+
+.trial-note {
+  display: flex; align-items: center; justify-content: center; gap: .8rem;
+  background: linear-gradient(135deg, rgba(0,255,200,.07), rgba(247,147,26,.07));
+  border: 1px solid rgba(0,255,200,.15);
+  border-radius: 14px; padding: 1rem 2rem;
+  font-size: .88rem; margin-bottom: 3rem;
+  max-width: 600px; margin-left: auto; margin-right: auto;
+}
+.trial-note strong { color: var(--neon); }
+
+.price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+.p-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 2.2rem 1.8rem;
+  position: relative;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  text-align: center;
+}
+.p-card:hover { transform: translateY(-10px); box-shadow: 0 40px 100px rgba(0,0,0,.7); }
+
+.p-card.featured {
+  border-color: rgba(0,255,200,.25);
+  background: linear-gradient(180deg, rgba(0,255,200,.05) 0%, var(--bg3) 60%);
+  box-shadow: 0 0 60px rgba(0,255,200,.08);
+}
+
+.p-card.featured:hover { box-shadow: 0 40px 100px rgba(0,0,0,.7), 0 0 80px rgba(0,255,200,.12); }
+
+.p-hot {
+  position: absolute;
+  top: -13px; left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--neon), var(--neon2));
+  color: #000;
+  padding: .3rem 1.4rem;
+  border-radius: 50px;
+  font-size: .72rem; font-weight: 800;
+  white-space: nowrap; letter-spacing: .5px;
+}
+
+.p-name { font-size: .82rem; font-weight: 600; color: var(--text2); margin-bottom: .5rem; letter-spacing: 1px; text-transform: uppercase; }
+
+.p-price {
+  font-size: 3rem; font-weight: 900;
+  letter-spacing: -2px; line-height: 1;
+  color: var(--gold);
+}
+.p-price sup { font-size: 1.2rem; vertical-align: top; margin-top: .6rem; display: inline-block; }
+.p-price sub { font-size: .85rem; font-weight: 400; color: var(--text2); letter-spacing: 0; }
+
+.p-irr { font-size: .78rem; color: var(--text2); margin: .4rem 0 1.8rem; }
+
+.p-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin-bottom: 1.5rem;
+}
+
+.p-features { list-style: none; text-align: right; margin-bottom: 2rem; display: flex; flex-direction: column; gap: .6rem; }
+.p-features li { display: flex; align-items: center; gap: .6rem; font-size: .85rem; color: var(--text3); font-weight: 300; }
+.p-features li .ck { color: var(--green); font-weight: 700; font-size: .9rem; flex-shrink: 0; }
+.p-features li .xx { color: rgba(255,255,255,.15); flex-shrink: 0; }
+.p-features li.off { color: rgba(255,255,255,.2); }
+
+.p-btn {
+  width: 100%; padding: .95rem; border-radius: 14px;
+  font-size: .9rem; font-weight: 700;
+  cursor: pointer; border: none;
+  font-family: 'Vazirmatn', sans-serif;
+  transition: all .3s; letter-spacing: .3px;
+}
+.p-btn-neon {
+  background: linear-gradient(135deg, var(--neon), var(--neon2));
+  color: #000;
+  box-shadow: 0 0 25px rgba(0,255,200,.3);
+}
+.p-btn-neon:hover { box-shadow: 0 0 45px rgba(0,255,200,.5); transform: translateY(-2px); }
+.p-btn-outline {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--text3);
+}
+.p-btn-outline:hover { border-color: var(--neon); color: var(--neon); background: rgba(0,255,200,.04); }
+
+/* ═══ WINRATE BAR ═══ */
+.wrate-section {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.wrate-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem; margin-top: 3rem;
+}
+
+.wr-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1.8rem;
+  text-align: center;
+  position: relative; overflow: hidden;
+  transition: all .3s;
+}
+.wr-card:hover { border-color: rgba(0,255,200,.2); transform: translateY(-5px); }
+.wr-card::before {
+  content:''; position:absolute; bottom:0;left:0;right:0;height:2px;
+  background: linear-gradient(90deg, transparent, var(--neon), transparent);
+  opacity: .4;
+}
+
+.wr-num {
+  font-size: 2.8rem; font-weight: 900; letter-spacing: -2px;
+  background: linear-gradient(135deg, var(--gold), var(--neon));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  display: block;
+}
+.wr-lbl { font-size: .8rem; color: var(--text2); margin-top: .3rem; font-weight: 300; }
+
+/* ═══ CTA ═══ */
+.cta-section {
+  position: relative; z-index: 2;
+  padding: 5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.cta-box {
+  background: linear-gradient(135deg, rgba(247,147,26,.07), rgba(0,255,200,.07));
+  border: 1px solid rgba(0,255,200,.15);
+  border-radius: 32px;
+  padding: 5rem 3rem;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+
+.cta-box::before {
+  content: '';
+  position: absolute; width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(0,255,200,.06) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+
+.cta-title { font-size: 2.8rem; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 1rem; position: relative; }
+.cta-desc { color: var(--text2); font-size: 1rem; margin-bottom: 2.5rem; position: relative; font-weight: 300; }
+
+/* ═══ FOOTER ═══ */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 3rem 2rem 2rem;
+  position: relative; z-index: 2;
+}
+
+.footer-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 3rem;
+}
+
+.f-brand p { color: var(--text2); font-size: .85rem; line-height: 1.7; margin-top: .8rem; font-weight: 300; }
+
+.f-col-title { font-size: .78rem; font-weight: 700; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 1rem; }
+.f-links { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+.f-links a { color: var(--text2); text-decoration: none; font-size: .85rem; transition: color .3s; font-weight: 300; }
+.f-links a:hover { color: var(--neon); }
+
+.footer-bottom {
+  max-width: 1100px; margin: 2.5rem auto 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .78rem; color: rgba(255,255,255,.15);
+}
+
+/* ═══ REVEAL ═══ */
+.reveal { opacity:0; transform:translateY(35px); transition:all .9s cubic-bezier(.4,0,.2,1); }
+.reveal.show { opacity:1; transform:translateY(0); }
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:900px){
+  nav { width:calc(100% - 2rem); padding:.8rem 1.2rem; }
+  .nav-menu { display:none; }
+  .feat-grid { grid-template-columns:1fr 1fr; }
+  .sig-layout { grid-template-columns:1fr; gap:2rem; }
+  .price-grid { grid-template-columns:1fr; }
+  .wrate-grid { grid-template-columns:repeat(2,1fr); }
+  .hero-stats { grid-template-columns:repeat(2,1fr); }
+  .footer-inner { grid-template-columns:1fr 1fr; }
+}
+
+@media(max-width:600px){
+  .feat-grid { grid-template-columns:1fr; }
+  .hero-stats { grid-template-columns:repeat(2,1fr); }
+  .footer-inner { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- STARFIELD -->
+<canvas id="starfield"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-orb">Z</div>
+    <div>
+      <div class="logo-text">Zandi<span>Bot</span></div>
+    </div>
+    <span class="logo-sub">| دستیار هوشمند سیگنال</span>
+  </a>
+
+  <ul class="nav-menu">
+    <li><a href="#features">امکانات</a></li>
+    <li><a href="#signals">سیگنال‌ها</a></li>
+    <li><a href="#pricing">اشتراک</a></li>
+    <li><a href="/admin">مدیریت</a></li>
+  </ul>
+
+  <div class="nav-right">
+    <a href="/login" class="btn-ghost">ورود</a>
+    <a href="/register" class="btn-gold">۲ روز رایگان ←</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+  <div class="orb3"></div>
+
+  <div class="hero-inner">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span>سیستم فعال — اسکن ۲۴/۷ بازار</span>
+    </div>
+
+    <!-- 3D BITCOIN -->
+    <div class="btc-scene">
+      <div class="btc-glow-outer"></div>
+      <div class="btc-coin">
+        <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="cg1" cx="38%" cy="32%" r="65%">
+              <stop offset="0%" stop-color="#FFE566"/>
+              <stop offset="30%" stop-color="#F7931A"/>
+              <stop offset="100%" stop-color="#8B4800"/>
+            </radialGradient>
+            <radialGradient id="cg2" cx="50%" cy="50%">
+              <stop offset="0%" stop-color="#C97A00"/>
+              <stop offset="100%" stop-color="#5A3000"/>
+            </radialGradient>
+            <filter id="cs">
+              <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#000" flood-opacity=".8"/>
+            </filter>
+            <linearGradient id="shine" x1="0%" y1="0%" x2="60%" y2="60%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.35)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+          </defs>
+          <!-- Shadow -->
+          <ellipse cx="120" cy="225" rx="80" ry="12" fill="rgba(0,0,0,0.5)"/>
+          <!-- Coin edge -->
+          <ellipse cx="120" cy="110" rx="96" ry="18" fill="url(#cg2)"/>
+          <rect x="24" y="92" width="192" height="18" fill="url(#cg2)"/>
+          <!-- Coin face -->
+          <circle cx="120" cy="92" r="96" fill="url(#cg1)" filter="url(#cs)"/>
+          <!-- Inner ring -->
+          <circle cx="120" cy="92" r="82" fill="none" stroke="rgba(255,220,100,0.2)" stroke-width="1.5"/>
+          <circle cx="120" cy="92" r="75" fill="none" stroke="rgba(255,220,100,0.1)" stroke-width="1"/>
+          <!-- Shadow B -->
+          <text x="122" y="124" text-anchor="middle" font-size="90" font-weight="900"
+                font-family="Arial Black" fill="rgba(0,0,0,0.25)">₿</text>
+          <!-- Main B -->
+          <text x="120" y="121" text-anchor="middle" font-size="90" font-weight="900"
+                font-family="Arial Black" fill="rgba(255,255,255,0.92)">₿</text>
+          <!-- Shine -->
+          <ellipse cx="92" cy="58" rx="28" ry="16"
+                   fill="url(#shine)" transform="rotate(-20,92,58)"/>
+          <ellipse cx="88" cy="54" rx="12" ry="7"
+                   fill="rgba(255,255,255,0.15)" transform="rotate(-20,88,54)"/>
+        </svg>
+      </div>
+
+      <div class="btc-float-1">▲ +۴.۲% امروز</div>
+      <div class="btc-float-2">
+        <div class="lbl">Bitcoin</div>
+        <div class="price" id="btcPrice">$105,420</div>
+      </div>
+      <div class="btc-float-3">🎯 LONG سیگنال</div>
+    </div>
+
+    <h1 class="hero-title">
+      <span class="ht-1">دستیار هوشمند</span>
+      <span class="ht-2">سیگنال‌دهی کریپتو</span>
+      <span class="ht-3">تحلیل دقیق · سیگنال به‌موقع · وین‌ریت قابل اندازه‌گیری</span>
+    </h1>
+
+    <p class="hero-desc">
+      ZandiBot با تحلیل چندلایه بازار، لحظه مناسب ورود را شناسایی
+      و سیگنال دقیق را مستقیم در تلگرام شما ارسال می‌کند.
+    </p>
+
+    <div class="hero-actions">
+      <a href="/register" class="btn-hero-main">شروع ۲ روز تست رایگان ←</a>
+      <a href="#signals" class="btn-hero-sec">مشاهده سیگنال‌ها</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hstat"><span class="hstat-num">۷۲%</span><div class="hstat-lbl">وین‌ریت TP1</div></div>
+      <div class="hstat"><span class="hstat-num">2.5R</span><div class="hstat-lbl">میانگین R/R</div></div>
+      <div class="hstat"><span class="hstat-num">11</span><div class="hstat-lbl">شرط تأیید</div></div>
+      <div class="hstat"><span class="hstat-num">24/7</span><div class="hstat-lbl">اسکن بازار</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <div class="t-item">₿ <b>BTC</b> $105,420 <span class="up">▲ +4.2%</span></div>
+    <div class="t-item">Ξ <b>ETH</b> $3,850 <span class="up">▲ +2.8%</span></div>
+    <div class="t-item">◎ <b>SOL</b> $185.4 <span class="up">▲ +6.1%</span></div>
+    <div class="t-item">⬡ <b>BNB</b> $642 <span class="dn">▼ -1.2%</span></div>
+    <div class="t-item">✕ <b>XRP</b> $0.842 <span class="up">▲ +3.4%</span></div>
+    <div class="t-item">🎯 <b>SIGNAL</b> BTCUSDT LONG 9/11 🔥 HIGH</div>
+    <div class="t-item">⚡ <b>SIGNAL</b> SOLUSDT LONG 7/11 ⚡ MEDIUM</div>
+    <div class="t-item">₿ <b>BTC</b> $105,420 <span class="up">▲ +4.2%</span></div>
+    <div class="t-item">Ξ <b>ETH</b> $3,850 <span class="up">▲ +2.8%</span></div>
+    <div class="t-item">◎ <b>SOL</b> $185.4 <span class="up">▲ +6.1%</span></div>
+    <div class="t-item">⬡ <b>BNB</b> $642 <span class="dn">▼ -1.2%</span></div>
+    <div class="t-item">✕ <b>XRP</b> $0.842 <span class="up">▲ +3.4%</span></div>
+    <div class="t-item">🎯 <b>SIGNAL</b> BTCUSDT LONG 9/11 🔥 HIGH</div>
+    <div class="t-item">⚡ <b>SIGNAL</b> SOLUSDT LONG 7/11 ⚡ MEDIUM</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section" id="features">
+  <div class="reveal" style="text-align:center; margin-bottom:.5rem;">
+    <div class="s-tag">✦ امکانات</div>
+    <h2 class="s-title" style="margin-bottom:.8rem;">همه چیز در <span class="accent">یک سیستم</span></h2>
+    <p class="s-desc" style="max-width:500px; margin:0 auto;">از تحلیل تا ارسال سیگنال، همه مراحل خودکار</p>
+  </div>
+  <div class="feat-grid reveal">
+    <div class="feat-card">
+      <div class="f-icon">📊</div>
+      <div class="f-title">تحلیل ۴ تایم‌فریم</div>
+      <p class="f-desc">بررسی همزمان 4H، 1H، 15m و 5m برای یافتن دقیق‌ترین نقطه ورود</p>
+    </div>
+    <div class="feat-card">
+      <div class="f-icon">🎯</div>
+      <div class="f-title">۱۱ شرط تأیید</div>
+      <p class="f-desc">EMA، VWAP، Order Block، FVG، BOS، RSI و Volume همه با هم بررسی می‌شوند</p>
+    </div>
+    <div class="feat-card">
+      <div class="f-icon">📱</div>
+      <div class="f-title">تلگرام + پیامک</div>
+      <p class="f-desc">دریافت سیگنال فوری در تلگرام و اطلاع‌رسانی SMS از طریق کاوه‌نگار</p>
+    </div>
+    <div class="feat-card">
+      <div class="f-icon">📈</div>
+      <div class="f-title">بک‌تست استراتژی</div>
+      <p class="f-desc">آزمون استراتژی روی داده‌های تاریخی و مشاهده نتایج واقعی قبل از ترید</p>
+    </div>
+    <div class="feat-card">
+      <div class="f-icon">🏆</div>
+      <div class="f-title">ردیابی وین‌ریت</div>
+      <p class="f-desc">TP1، TP2، TP3 و SL جداگانه ردیابی و آمار دقیق برای هر ارز نمایش داده می‌شود</p>
+    </div>
+    <div class="feat-card">
+      <div class="f-icon">✅</div>
+      <div class="f-title">انتخاب ارز</div>
+      <p class="f-desc">تیک فعال‌سازی برای هر ارز — سیستم فقط روی ارزهای انتخاب‌شده کار می‌کند</p>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNAL SECTION -->
+<div class="sig-wrap" id="signals">
+  <div class="section">
+    <div class="sig-layout reveal">
+      <div>
+        <div class="s-tag">✦ نمونه سیگنال</div>
+        <h2 class="s-title" style="margin-bottom:1rem;">سیگنال <span class="accent">واضح و کامل</span></h2>
+        <p class="s-desc" style="margin-bottom:.5rem;">هر سیگنال شامل تمام اطلاعات لازم برای ورود، مدیریت ریسک و خروج است.</p>
+        <div class="checks">
+          <div class="ch"><span class="ch-ic">✅</span><div class="ch-t"><strong>روند 4H صعودی + بالای EMA200</strong><span>جهت کلی بازار تأیید شد</span></div></div>
+          <div class="ch"><span class="ch-ic">✅</span><div class="ch-t"><strong>قیمت بالای VWAP در 1H</strong><span>تمایل صعودی کوتاه‌مدت</span></div></div>
+          <div class="ch"><span class="ch-ic">✅</span><div class="ch-t"><strong>واکنش از Order Block صعودی</strong><span>ناحیه تقاضای معتبر</span></div></div>
+          <div class="ch"><span class="ch-ic">✅</span><div class="ch-t"><strong>BOS صعودی در 5m</strong><span>شکست ساختار تأیید شد</span></div></div>
+          <div class="ch"><span class="ch-ic">✅</span><div class="ch-t"><strong>حجم ۱.۸x بالای میانگین</strong><span>تأیید قدرت حرکت</span></div></div>
+        </div>
+      </div>
+
+      <div class="sig-card">
+        <div class="sig-head">
+          <span class="sig-sym">🪙 BTCUSDT</span>
+          <span class="sig-badge long">🟢 LONG</span>
+        </div>
+        <div class="sig-rows">
+          <div class="sig-row"><span class="sig-lbl">💰 قیمت ورود</span><span class="sig-val">105,250</span></div>
+          <div class="sig-row"><span class="sig-lbl">🔴 استاپ لاس</span><span class="sig-val r">104,100</span></div>
+          <div class="sig-row"><span class="sig-lbl">🟡 TP1</span><span class="sig-val g">106,980</span></div>
+          <div class="sig-row"><span class="sig-lbl">🟠 TP2</span><span class="sig-val g">108,120</span></div>
+          <div class="sig-row"><span class="sig-lbl">🟢 TP3</span><span class="sig-val g">110,500</span></div>
+          <div class="sig-row"><span class="sig-lbl">📊 R/R</span><span class="sig-val o">2.5R 🔥 HIGH</span></div>
+        </div>
+        <div style="margin-top:1rem; font-size:.75rem; color:var(--text2);">امتیاز: ۹/۱۱</div>
+        <div class="score-bar">
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s"></div>
+          <div class="score-s"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WINRATE -->
+<div class="wrate-section">
+  <div class="section reveal" style="text-align:center;">
+    <div class="s-tag">✦ عملکرد</div>
+    <h2 class="s-title" style="margin-bottom:.8rem;">نتایج <span class="accent">واقعی و قابل اندازه‌گیری</span></h2>
+    <div class="wrate-grid" style="margin-top:3rem;">
+      <div class="wr-card"><span class="wr-num">۷۲%</span><div class="wr-lbl">وین‌ریت TP1</div></div>
+      <div class="wr-card"><span class="wr-num">۵۸%</span><div class="wr-lbl">وین‌ریت TP2</div></div>
+      <div class="wr-card"><span class="wr-num">2.5R</span><div class="wr-lbl">میانگین R/R</div></div>
+      <div class="wr-card"><span class="wr-num">+۴۳۰</span><div class="wr-lbl">سیگنال صادر شده</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="price-wrap" id="pricing">
+  <div class="section">
+    <div class="reveal" style="text-align:center; margin-bottom:2.5rem;">
+      <div class="s-tag">✦ اشتراک</div>
+      <h2 class="s-title" style="margin-bottom:.8rem;">پلن مناسب <span class="accent">خود را انتخاب کنید</span></h2>
+    </div>
+
+    <div class="trial-note reveal">
+      🎁 <strong>۲ روز تست کاملاً رایگان</strong> — بدون نیاز به کارت بانکی — برای تمام پلن‌ها
+    </div>
+
+    <div class="price-grid reveal">
+      <!-- BASIC -->
+      <div class="p-card">
+        <div class="p-name">پایه</div>
+        <div class="p-price"><sup>$</sup>29<sub>/ماه</sub></div>
+        <div class="p-irr">۱,۴۵۰,۰۰۰ تومان</div>
+        <div class="p-divider"></div>
+        <ul class="p-features">
+          <li><span class="ck">✓</span> ۵ ارز دیجیتال</li>
+          <li><span class="ck">✓</span> سیگنال تلگرام</li>
+          <li><span class="ck">✓</span> ردیابی وین‌ریت</li>
+          <li><span class="ck">✓</span> ۳ تارگت + استاپ</li>
+          <li class="off"><span class="xx">✕</span> بک‌تست</li>
+          <li class="off"><span class="xx">✕</span> پیامک SMS</li>
+        </ul>
+        <button class="p-btn p-btn-outline" onclick="location.href='/register'">شروع ۲ روز رایگان</button>
+      </div>
+
+      <!-- PRO -->
+      <div class="p-card featured">
+        <div class="p-hot">⚡ پرطرفدار</div>
+        <div class="p-name">حرفه‌ای</div>
+        <div class="p-price"><sup>$</sup>59<sub>/ماه</sub></div>
+        <div class="p-irr">۲,۹۵۰,۰۰۰ تومان</div>
+        <div class="p-divider"></div>
+        <ul class="p-features">
+          <li><span class="ck">✓</span> ۱۵ ارز دیجیتال</li>
+          <li><span class="ck">✓</span> سیگنال تلگرام</li>
+          <li><span class="ck">✓</span> ردیابی وین‌ریت</li>
+          <li><span class="ck">✓</span> بک‌تست کامل</li>
+          <li><span class="ck">✓</span> پیامک کاوه‌نگار</li>
+          <li class="off"><span class="xx">✕</span> سیگنال VIP</li>
+        </ul>
+        <button class="p-btn p-btn-neon" onclick="location.href='/register'">شروع ۲ روز رایگان</button>
+      </div>
+
+      <!-- VIP -->
+      <div class="p-card">
+        <div class="p-name">VIP</div>
+        <div class="p-price"><sup>$</sup>99<sub>/ماه</sub></div>
+        <div class="p-irr">۴,۹۵۰,۰۰۰ تومان</div>
+        <div class="p-divider"></div>
+        <ul class="p-features">
+          <li><span class="ck">✓</span> نامحدود ارز</li>
+          <li><span class="ck">✓</span> سیگنال تلگرام</li>
+          <li><span class="ck">✓</span> ردیابی وین‌ریت</li>
+          <li><span class="ck">✓</span> بک‌تست کامل</li>
+          <li><span class="ck">✓</span> پیامک کاوه‌نگار</li>
+          <li><span class="ck">✓</span> سیگنال VIP اختصاصی</li>
+        </ul>
+        <button class="p-btn p-btn-outline" onclick="location.href='/register'">شروع ۲ روز رایگان</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-box reveal">
+    <h2 class="cta-title">همین الان شروع کنید ⚡</h2>
+    <p class="cta-desc">۲ روز تست رایگان — بدون پرداخت — لغو هر زمان</p>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; position:relative;">
+      <a href="/register" class="btn-hero-main">ثبت‌نام و شروع ←</a>
+      <a href="https://t.me/zandibot_channel" class="btn-hero-sec">کانال تلگرام</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="f-brand">
+      <div class="logo-text" style="font-size:1.4rem;">Zandi<span style="color:var(--neon);">Bot</span></div>
+      <p>دستیار هوشمند سیگنال‌دهی کریپتو<br>تحلیل دقیق بازار، سیگنال به‌موقع</p>
+    </div>
+    <div>
+      <div class="f-col-title">سیستم</div>
+      <ul class="f-links">
+        <li><a href="#features">امکانات</a></li>
+        <li><a href="#signals">سیگنال‌ها</a></li>
+        <li><a href="#pricing">اشتراک</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="f-col-title">حساب</div>
+      <ul class="f-links">
+        <li><a href="/login">ورود</a></li>
+        <li><a href="/register">ثبت‌نام</a></li>
+        <li><a href="/dashboard">پنل کاربری</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="f-col-title">مدیریت</div>
+      <ul class="f-links">
+        <li><a href="/admin">پنل مدیریت</a></li>
+        <li><a href="/admin/users">کاربران</a></li>
+        <li><a href="/admin/settings">تنظیمات</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© ۱۴۰۵ ZandiBot — تمام حقوق محفوظ است</span>
+    <span>ساخته شده با ❤️ برای تریدرهای حرفه‌ای</span>
+  </div>
+</footer>
+
+<script>
+/* ═══ STARFIELD ═══ */
+const sf = document.getElementById('starfield');
+const sc = sf.getContext('2d');
+sf.width  = window.innerWidth;
+sf.height = window.innerHeight;
+window.addEventListener('resize', () => { sf.width = window.innerWidth; sf.height = window.innerHeight; initStars(); });
+
+let stars = [];
+function initStars() {
+  stars = Array.from({length:120}, () => ({
+    x: Math.random() * sf.width,
+    y: Math.random() * sf.height,
+    r: Math.random() * 1.2 + 0.2,
+    o: Math.random() * 0.5 + 0.1,
+    dx: (Math.random() - 0.5) * 0.15,
+    dy: (Math.random() - 0.5) * 0.15,
+    c: Math.random() > 0.6 ? '0,255,200' : Math.random() > 0.5 ? '247,147,26' : '255,255,255'
+  }));
+}
+
+function drawStars() {
+  sc.clearRect(0, 0, sf.width, sf.height);
+  stars.forEach(s => {
+    sc.beginPath();
+    sc.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    sc.fillStyle = `rgba(${s.c},${s.o})`;
+    sc.fill();
+    s.x += s.dx; s.y += s.dy;
+    if (s.x < 0) s.x = sf.width;
+    if (s.x > sf.width) s.x = 0;
+    if (s.y < 0) s.y = sf.height;
+    if (s.y > sf.height) s.y = 0;
+
+    // connections
+    stars.forEach(s2 => {
+      const d = Math.hypot(s.x-s2.x, s.y-s2.y);
+      if (d < 80) {
+        sc.beginPath();
+        sc.moveTo(s.x, s.y);
+        sc.lineTo(s2.x, s2.y);
+        sc.strokeStyle = `rgba(0,255,200,${0.04*(1-d/80)})`;
+        sc.lineWidth = 0.5;
+        sc.stroke();
+      }
+    });
+  });
+  requestAnimationFrame(drawStars);
+}
+initStars();
+drawStars();
+
+/* ═══ SCROLL REVEAL ═══ */
+const reveals = document.querySelectorAll('.reveal');
+const ro = new IntersectionObserver(es => {
+  es.forEach(e => { if (e.isIntersecting) e.target.classList.add('show'); });
+}, { threshold: 0.08 });
+reveals.forEach(r => ro.observe(r));
+
+/* ═══ LIVE BTC PRICE ═══ */
+let btcBase = 105420;
+const priceEl = document.getElementById('btcPrice');
+setInterval(() => {
+  btcBase += (Math.random() - 0.49) * 80;
+  priceEl.textContent = '$' + Math.round(btcBase).toLocaleString('en-US');
+}, 2500);
+</script>
+</body>
+</html>

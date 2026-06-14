@@ -113,32 +113,28 @@ def find_order_blocks(df: pd.DataFrame, lookback: int = 50) -> dict:
         is_bearish_candle = candle["close"] < candle["open"]
         is_bullish_candle = candle["close"] > candle["open"]
 
-        ob_size_pct = (candle["high"] - candle["low"]) / candle["close"] if candle["close"] > 0 else 0
-
-        # Bullish OB: کندل نزولی + بعدش ۳ کندل صعودی قوی + حداقل سایز OB
-        if is_bearish_candle and ob_size_pct >= 0.002:
+        # Bullish OB: کندل نزولی + بعدش ۳ کندل صعودی قوی
+        if is_bearish_candle:
             move_up = (next3["close"] > next3["open"]).sum() >= 2
-            strong_move = next3["close"].max() > candle["high"] * 1.002  # حداقل ۰.۲٪ بالاتر
-            impulse = (next3["close"].max() - candle["close"]) / candle["close"] >= 0.003
-            if move_up and strong_move and impulse:
+            strong_move = next3["close"].max() > candle["high"] * 1.001
+            if move_up and strong_move:
                 bullish_obs.append({
                     "type":   "bullish",
-                    "top":    round(candle["open"], 4),
-                    "bottom": round(candle["low"], 4),
+                    "top":    round(candle["open"], 4),   # سقف OB = open کندل نزولی
+                    "bottom": round(candle["low"], 4),    # کف OB = low کندل نزولی
                     "time":   candle["time"],
                     "mitigated": recent.iloc[i+1:]["low"].min() < candle["low"],
                 })
 
-        # Bearish OB: کندل صعودی + بعدش ۳ کندل نزولی قوی + حداقل سایز OB
-        if is_bullish_candle and ob_size_pct >= 0.002:
+        # Bearish OB: کندل صعودی + بعدش ۳ کندل نزولی قوی
+        if is_bullish_candle:
             move_down = (next3["close"] < next3["open"]).sum() >= 2
-            strong_move = next3["close"].min() < candle["low"] * 0.998
-            impulse = (candle["close"] - next3["close"].min()) / candle["close"] >= 0.003
-            if move_down and strong_move and impulse:
+            strong_move = next3["close"].min() < candle["low"] * 0.999
+            if move_down and strong_move:
                 bearish_obs.append({
                     "type":   "bearish",
-                    "top":    round(candle["high"], 4),
-                    "bottom": round(candle["open"], 4),
+                    "top":    round(candle["high"], 4),   # سقف OB = high کندل صعودی
+                    "bottom": round(candle["open"], 4),   # کف OB = open کندل صعودی
                     "time":   candle["time"],
                     "mitigated": recent.iloc[i+1:]["high"].max() > candle["high"],
                 })
@@ -261,7 +257,7 @@ def find_fvg(df: pd.DataFrame, lookback: int = 50) -> dict:
 # تابع اصلی
 # ─────────────────────────────────────────
 
-def compute_structure(df: pd.DataFrame, pivot_len: int = 5) -> tuple:
+def compute_structure(df: pd.DataFrame, pivot_len: int = 5) -> tuple[pd.DataFrame, dict]:
     """همه ساختار بازار رو حساب می‌کنه"""
     df = find_swings(df, pivot_len=pivot_len)
 

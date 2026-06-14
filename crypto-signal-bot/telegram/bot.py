@@ -120,27 +120,20 @@ def kb_settings():
 def fmt_signal(sig):
     d = "🟢" if sig.get("direction")=="LONG" else "🔴"
     ce = {"HIGH":"🔥","MEDIUM":"⚡","LOW":"🔹"}.get(sig.get("confidence",""),"")
-    sc   = sig.get("score", 0)
-    filled = int(round(sc))
-    bar  = "█" * filled + "░" * (10 - filled)
-    sl_pct = ""
-    entry = sig.get("entry", 0)
-    sl    = sig.get("stop_loss", 0)
-    if entry and sl:
-        sl_pct = f"  ({round(abs(entry-sl)/entry*100, 2)}%)"
+    sc = sig.get("score",0)
+    bar = "█"*sc + "░"*(11-sc)
     return (
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🪙 <b>{sig.get('symbol')}</b>  {d} <b>{sig.get('direction')}</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"💰 <b>ورود:</b>  <code>{entry}</code>\n"
-        f"🔴 <b>استاپ:</b> <code>{sl}</code>{sl_pct}\n\n"
+        f"💰 <b>ورود:</b>  <code>{sig.get('entry')}</code>\n"
+        f"🔴 <b>استاپ:</b> <code>{sig.get('stop_loss')}</code>\n\n"
         f"🎯 <b>تارگت‌ها:</b>\n"
         f"  🟡 TP1: <code>{sig.get('tp1')}</code>\n"
         f"  🟠 TP2: <code>{sig.get('tp2')}</code>\n"
         f"  🟢 TP3: <code>{sig.get('tp3')}</code>\n\n"
         f"📊 R/R: <code>{sig.get('rr')}R</code>  {ce} <b>{sig.get('confidence')}</b>\n"
-        f"🎯 امتیاز: <code>{sc}/10</code>  [{bar}]\n"
-        f"📈 احتمال: <code>{sig.get('probability', 0)}%</code>\n"
+        f"🎯 امتیاز: <code>{sc}/11</code>  [{bar}]\n"
     )
 
 def fmt_welcome(name, adm):
@@ -405,30 +398,19 @@ def broadcast_signal(signal):
 
 def broadcast_tp_sl(trade, hit):
     users = load_users()
-    emoji = {"TP1":"🟡","TP2":"🟠","TP3":"🏆","SL":"❌"}.get(hit, "📍")
-    default_pnl = {"TP1": 1.5, "TP2": 2.5, "TP3": 4.0, "SL": -1.0}.get(hit, 0)
-    pnl   = trade.get("pnl_r") or default_pnl
-    pnl_str = f"+{pnl}R" if pnl > 0 else f"{pnl}R"
-
-    # فاصله ورود تا خروج
-    entry = trade.get("entry", 0)
-    exit_p = trade.get("exit_price") or trade.get(f"tp{hit[-1].lower()}" if hit.startswith("TP") else "stop_loss", 0)
-
-    text = (
+    emoji = {"TP1":"🟡","TP2":"🟠","TP3":"🏆","SL":"❌"}.get(hit,"📍")
+    pnl   = trade.get("pnl_r",0)
+    text  = (
         f"{emoji} <b>{hit} زده شد!</b>\n\n"
         f"🪙 <b>{trade.get('symbol')}</b> | {trade.get('direction')}\n"
-        f"📍 ورود: <code>{entry}</code>\n"
-        f"💰 نتیجه: <code>{pnl_str}</code>\n"
+        f"📍 ورود: <code>{trade.get('entry')}</code>\n"
+        f"💰 نتیجه: <code>{'+' if pnl>0 else ''}{pnl}R</code>\n"
     )
-
-    # کلید نوتیف: TP3 هم مثل TP2 ارسال بشه
-    nk_map = {"TP1": "notify_tp1", "TP2": "notify_tp2", "TP3": "notify_tp2", "SL": "notify_sl"}
-    nk = nk_map.get(hit, "notify_tp1")
-
+    nk = f"notify_{'tp1' if hit=='TP1' else 'tp2' if hit=='TP2' else 'sl'}"
     for uid, user in users.items():
         if not user.get("active") and uid not in ADMIN_IDS: continue
         if not user.get(nk, True): continue
-        if trade.get("symbol") not in user.get("symbols", []): continue
+        if trade.get("symbol") not in user.get("symbols",[]): continue
         send(uid, text)
         time.sleep(0.05)
 
@@ -469,34 +451,6 @@ def process_update(update):
     elif "callback_query" in update:
         cb = update["callback_query"]
         handle_cb(str(cb["from"]["id"]), cb["id"], cb.get("data",""), cb["message"]["message_id"], cb.get("from",{}))
-
-
-# ── Alias توابع برای سازگاری با main.py ──
-
-def send_signal(signal) -> bool:
-    """ارسال سیگنال به همه کاربران فعال"""
-    sent = broadcast_signal(signal)
-    return sent > 0
-
-
-def send_message(text: str) -> bool:
-    """ارسال پیام فقط به ادمین‌ها"""
-    ok = False
-    for adm_id in ADMIN_IDS:
-        r = send(adm_id, text)
-        if r.get("ok"):
-            ok = True
-    return ok
-
-
-def send_tp_notification(trade: dict, hit: str):
-    """ارسال نوتیف TP/SL به همه کاربران"""
-    broadcast_tp_sl(trade, hit)
-
-
-def handle_commands():
-    """لوپ دریافت پیام و دستورات تلگرام"""
-    run()
 
 
 def run():

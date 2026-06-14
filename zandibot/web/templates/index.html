@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZandiBot — ربات سیگنال هوشمند کریپتو</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --dark: #080b0f;
+  --dark2: #0d1117;
+  --dark3: #111820;
+  --dark4: #1a2332;
+  --text: #e8edf5;
+  --text2: #8fa3b8;
+  --green: #00d4a8;
+  --red: #ff4d6d;
+  --blue: #3d8bff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Vazirmatn', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ── NAVBAR ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 1.2rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8,11,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(201,168,76,0.15);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover { color: var(--gold); }
+
+.nav-cta {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--dark) !important;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700 !important;
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8rem 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,212,168,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 20% 60%, rgba(61,139,255,0.05) 0%, transparent 60%);
+}
+
+/* چارت انیمیشن پس‌زمینه */
+.chart-bg {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 300px;
+  opacity: 0.07;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.3);
+  color: var(--gold);
+  padding: 0.4rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  animation: fadeInDown 0.8s ease;
+}
+
+.badge-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+h1 {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+h1 span {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-desc {
+  font-size: 1.15rem;
+  color: var(--text2);
+  max-width: 600px;
+  margin: 0 auto 3rem;
+  line-height: 1.8;
+  animation: fadeInUp 0.8s ease 0.4s both;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeInUp 0.8s ease 0.6s both;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--dark);
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 8px 32px rgba(201,168,76,0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 48px rgba(201,168,76,0.4);
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── STATS ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 4rem auto 0;
+  animation: fadeInUp 0.8s ease 0.8s both;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.stat-value {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--gold);
+  display: block;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin-top: 0.3rem;
+}
+
+/* ── SECTION ── */
+section {
+  padding: 6rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-tag {
+  display: inline-block;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.2);
+  color: var(--gold);
+  padding: 0.3rem 1rem;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 900;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.section-title span {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-desc {
+  color: var(--text2);
+  font-size: 1.05rem;
+  line-height: 1.8;
+  max-width: 600px;
+}
+
+/* ── SIGNAL CARD ── */
+.signal-demo {
+  background: var(--dark2);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 20px;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  max-width: 420px;
+}
+
+.signal-demo::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(ellipse at center, rgba(201,168,76,0.05) 0%, transparent 60%);
+}
+
+.signal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.signal-symbol {
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.signal-dir {
+  background: rgba(0,212,168,0.15);
+  color: var(--green);
+  padding: 0.3rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 1px solid rgba(0,212,168,0.3);
+}
+
+.signal-dir.short {
+  background: rgba(255,77,109,0.15);
+  color: var(--red);
+  border-color: rgba(255,77,109,0.3);
+}
+
+.signal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.signal-row:last-child { border-bottom: none; }
+
+.signal-row-label {
+  color: var(--text2);
+  font-size: 0.85rem;
+}
+
+.signal-row-value {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.signal-row-value.green { color: var(--green); }
+.signal-row-value.red   { color: var(--red); }
+.signal-row-value.gold  { color: var(--gold); }
+
+.score-bar {
+  display: flex;
+  gap: 3px;
+  margin-top: 1rem;
+}
+
+.score-dot {
+  height: 6px;
+  flex: 1;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+}
+
+.score-dot.filled { background: var(--gold); }
+
+/* ── FEATURES GRID ── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.feature-card {
+  background: var(--dark2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: all 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card:hover {
+  border-color: rgba(201,168,76,0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.feature-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.feature-card:hover::after { opacity: 1; }
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.feature-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.7rem;
+}
+
+.feature-desc {
+  color: var(--text2);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* ── STRATEGY SECTION ── */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  margin-top: 3rem;
+}
+
+.strategy-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.strategy-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.3s;
+}
+
+.strategy-item:hover {
+  background: rgba(201,168,76,0.05);
+  border-color: rgba(201,168,76,0.2);
+}
+
+.strategy-num {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--dark);
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.strategy-text strong {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+  font-size: 0.95rem;
+}
+
+.strategy-text span {
+  color: var(--text2);
+  font-size: 0.85rem;
+}
+
+/* ── PRICING ── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.price-card {
+  background: var(--dark2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 24px;
+  padding: 2rem;
+  text-align: center;
+  position: relative;
+  transition: all 0.4s;
+}
+
+.price-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+}
+
+.price-card.popular {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(201,168,76,0.08) 0%, var(--dark2) 100%);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--dark);
+  padding: 0.3rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.price-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 0.5rem;
+}
+
+.price-amount {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.price-amount span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text2);
+}
+
+.price-irr {
+  font-size: 0.85rem;
+  color: var(--text2);
+  margin: 0.3rem 0 1.5rem;
+}
+
+.price-features {
+  list-style: none;
+  text-align: right;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.price-features li {
+  font-size: 0.9rem;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.price-features li::before {
+  content: '✓';
+  color: var(--green);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.price-features li.no::before {
+  content: '✕';
+  color: rgba(255,255,255,0.2);
+}
+
+.price-features li.no { color: rgba(255,255,255,0.2); }
+
+.btn-plan {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s;
+  font-family: 'Vazirmatn', sans-serif;
+}
+
+.btn-plan-gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--dark);
+}
+
+.btn-plan-outline {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--text);
+}
+
+.btn-plan-outline:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── WINRATE ── */
+.winrate-section {
+  background: var(--dark2);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 6rem 2rem;
+  text-align: center;
+}
+
+.winrate-numbers {
+  display: flex;
+  justify-content: center;
+  gap: 4rem;
+  flex-wrap: wrap;
+  margin-top: 3rem;
+}
+
+.winrate-item { text-align: center; }
+
+.winrate-value {
+  font-size: 3.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: block;
+}
+
+.winrate-label {
+  color: var(--text2);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--dark2);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.footer-logo {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--gold);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.footer-desc {
+  color: var(--text2);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  list-style: none;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.footer-links a:hover { color: var(--gold); }
+
+.footer-copy {
+  color: rgba(255,255,255,0.2);
+  font-size: 0.8rem;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── LANG SWITCH ── */
+.lang-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text2);
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: 0.85rem;
+  transition: all 0.3s;
+}
+
+.lang-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  nav { padding: 1rem 1.5rem; }
+  .nav-links { display: none; }
+  .strategy-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .winrate-numbers { gap: 2rem; }
+}
+
+/* ── TELEGRAM CTA ── */
+.tg-cta {
+  background: linear-gradient(135deg, rgba(201,168,76,0.1), rgba(0,212,168,0.05));
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 24px;
+  padding: 4rem 2rem;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.tg-title {
+  font-size: 2rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+}
+
+.tg-desc {
+  color: var(--text2);
+  margin-bottom: 2rem;
+  font-size: 1.05rem;
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">⚡</div>
+    ZandiBot
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">امکانات</a></li>
+    <li><a href="#strategy">استراتژی</a></li>
+    <li><a href="#pricing">قیمت</a></li>
+    <li><a href="#contact">تماس</a></li>
+    <li><a href="/dashboard" class="nav-cta">پنل کاربری</a></li>
+  </ul>
+  <button class="lang-btn" onclick="toggleLang()">EN</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <svg class="chart-bg" viewBox="0 0 1200 300" preserveAspectRatio="none">
+    <polyline points="0,250 100,220 200,240 300,180 400,200 500,150 600,170 700,120 800,140 900,90 1000,110 1100,60 1200,80"
+      fill="none" stroke="rgba(201,168,76,0.5)" stroke-width="2"/>
+    <polyline points="0,250 100,220 200,240 300,180 400,200 500,150 600,170 700,120 800,140 900,90 1000,110 1100,60 1200,80 1200,300 0,300"
+      fill="rgba(201,168,76,0.03)" stroke="none"/>
+  </svg>
+
+  <div style="position:relative; z-index:1;">
+    <div class="hero-badge">
+      <div class="badge-dot"></div>
+      <span>ربات در حال اجرا — ۲۴/۷</span>
+    </div>
+
+    <h1>
+      معامله‌گری هوشمند<br>
+      با <span>سبک امیر</span>
+    </h1>
+
+    <p class="hero-desc">
+      ربات سیگنال کریپتو با استراتژی حرفه‌ای SMC + ICT + Volume Profile<br>
+      سیگنال دقیق، وین‌ریت قابل اندازه‌گیری، بدون حدس و گمان
+    </p>
+
+    <div class="hero-btns">
+      <a href="/register" class="btn-primary">شروع رایگان ←</a>
+      <a href="#strategy" class="btn-secondary">بیشتر بدانید</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <span class="stat-value" id="stat-wr">۷۲%</span>
+        <span class="stat-label">وین‌ریت TP1</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">۱:۲.۵</span>
+        <span class="stat-label">میانگین R/R</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">۵</span>
+        <span class="stat-label">ارز برتر بازار</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">۱۱</span>
+        <span class="stat-label">شرط تأیید سیگنال</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SIGNAL DEMO -->
+<div style="background: var(--dark3); padding: 6rem 2rem; border-top: 1px solid rgba(255,255,255,0.04);">
+  <div style="max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center;" class="reveal">
+    <div>
+      <div class="section-tag">نمونه سیگنال</div>
+      <h2 class="section-title">سیگنال‌های <span>واضح و دقیق</span></h2>
+      <p class="section-desc">
+        هر سیگنال شامل قیمت ورود، استاپ لاس، سه تارگت و دلایل کامل ورود بر اساس چک‌لیست ۱۱ شرط سبک امیر است.
+      </p>
+      <div style="margin-top:2rem; display:flex; flex-direction:column; gap:0.8rem;">
+        <div style="display:flex; align-items:center; gap:0.8rem; color:var(--text2); font-size:0.9rem;">
+          <span style="color:var(--green); font-size:1.2rem;">✓</span> تحلیل همزمان ۴H، ۱H، ۱۵m، ۵m
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; color:var(--text2); font-size:0.9rem;">
+          <span style="color:var(--green); font-size:1.2rem;">✓</span> اطلاع‌رسانی فوری در تلگرام
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; color:var(--text2); font-size:0.9rem;">
+          <span style="color:var(--green); font-size:1.2rem;">✓</span> ردیابی خودکار TP1، TP2، SL
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; color:var(--text2); font-size:0.9rem;">
+          <span style="color:var(--green); font-size:1.2rem;">✓</span> گزارش وین‌ریت لحظه‌ای
+        </div>
+      </div>
+    </div>
+
+    <div class="signal-demo">
+      <div class="signal-header">
+        <span class="signal-symbol">🪙 BTCUSDT</span>
+        <span class="signal-dir">🟢 LONG</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">💰 قیمت ورود</span>
+        <span class="signal-row-value">105,250</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">🔴 استاپ لاس</span>
+        <span class="signal-row-value red">104,100</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">🟡 TP1</span>
+        <span class="signal-row-value green">106,980</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">🟠 TP2</span>
+        <span class="signal-row-value green">108,120</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">🟢 TP3</span>
+        <span class="signal-row-value green">110,500</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">📊 R/R</span>
+        <span class="signal-row-value gold">2.5R 🔥 HIGH</span>
+      </div>
+      <div style="margin-top:1rem;">
+        <div style="font-size:0.8rem; color:var(--text2); margin-bottom:0.5rem;">امتیاز: ۹/۱۱</div>
+        <div class="score-bar">
+          <div class="score-dot filled"></div><div class="score-dot filled"></div>
+          <div class="score-dot filled"></div><div class="score-dot filled"></div>
+          <div class="score-dot filled"></div><div class="score-dot filled"></div>
+          <div class="score-dot filled"></div><div class="score-dot filled"></div>
+          <div class="score-dot filled"></div><div class="score-dot"></div>
+          <div class="score-dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="reveal" style="text-align:center; margin-bottom:1rem;">
+    <div class="section-tag">امکانات</div>
+    <h2 class="section-title">همه چیز در <span>یک پلتفرم</span></h2>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <div class="feature-title">تحلیل چند تایم‌فریمی</div>
+      <p class="feature-desc">تحلیل همزمان ۴H، ۱H، ۱۵m و ۵m برای بهترین نقطه ورود طبق سبک امیر</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🎯</span>
+      <div class="feature-title">چک‌لیست ۱۱ شرط</div>
+      <p class="feature-desc">EMA، VWAP، OB، FVG، BOS، RSI، Volume همه با هم تأیید می‌شوند</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📱</span>
+      <div class="feature-title">تلگرام + SMS</div>
+      <p class="feature-desc">سیگنال فوری در تلگرام و پیامک از طریق کاوه‌نگار برای هر رویداد مهم</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📈</span>
+      <div class="feature-title">بک‌تست استراتژی</div>
+      <p class="feature-desc">تست استراتژی روی داده‌های تاریخی و مشاهده نتایج واقعی قبل از ترید</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🏆</span>
+      <div class="feature-title">ردیابی وین‌ریت</div>
+      <p class="feature-desc">TP1، TP2، TP3 و SL جداگانه ردیابی می‌شوند. آمار دقیق برای هر ارز</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">⚙️</span>
+      <div class="feature-title">پنل شخصی‌سازی</div>
+      <p class="feature-desc">انتخاب ارزها، تنظیم فیلترها و مدیریت کامل سیگنال‌های خود</p>
+    </div>
+  </div>
+</section>
+
+<!-- STRATEGY -->
+<div style="background: var(--dark3); border-top:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.04); padding:6rem 2rem;">
+  <div style="max-width:1100px; margin:0 auto;" id="strategy">
+    <div class="section-tag">استراتژی</div>
+    <div class="strategy-grid reveal">
+      <div>
+        <h2 class="section-title">سبک امیر<br><span>SMC + ICT</span></h2>
+        <p class="section-desc" style="margin-bottom:2rem;">
+          ترکیب قدرتمند Smart Money Concept با تحلیل حجم و ساختار بازار برای شناسایی دقیق نقاط ورود
+        </p>
+        <ul class="strategy-list">
+          <li class="strategy-item">
+            <div class="strategy-num">۱</div>
+            <div class="strategy-text">
+              <strong>جهت از 4H و 1H</strong>
+              <span>EMA200 + POC + ساختار کلی بازار</span>
+            </div>
+          </li>
+          <li class="strategy-item">
+            <div class="strategy-num">۲</div>
+            <div class="strategy-text">
+              <strong>ناحیه در 15m</strong>
+              <span>Order Block، FVG، VWAP، POC</span>
+            </div>
+          </li>
+          <li class="strategy-item">
+            <div class="strategy-num">۳</div>
+            <div class="strategy-text">
+              <strong>تریگر در 5m</strong>
+              <span>Liquidity Grab، BOS، حجم قوی</span>
+            </div>
+          </li>
+          <li class="strategy-item">
+            <div class="strategy-num">۴</div>
+            <div class="strategy-text">
+              <strong>فیلتر BTC</strong>
+              <span>بررسی همسویی بیت‌کوین قبل از ورود</span>
+            </div>
+          </li>
+          <li class="strategy-item">
+            <div class="strategy-num">۵</div>
+            <div class="strategy-text">
+              <strong>مدیریت معامله</strong>
+              <span>استاپ دقیق + ۳ تارگت مرحله‌ای</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:1rem;">
+        <div style="background:var(--dark2); border:1px solid rgba(201,168,76,0.15); border-radius:16px; padding:1.5rem;">
+          <div style="font-size:0.8rem; color:var(--text2); margin-bottom:1rem; text-transform:uppercase; letter-spacing:1px;">اندیکاتورها</div>
+          <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">VWAP</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">EMA 9/21/50/200</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">Order Block</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">FVG</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">RSI 14</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">Volume Profile</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">BOS</span>
+            <span style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.8rem;">Swing H/L</span>
+          </div>
+        </div>
+        <div style="background:var(--dark2); border:1px solid rgba(0,212,168,0.15); border-radius:16px; padding:1.5rem;">
+          <div style="font-size:0.8rem; color:var(--text2); margin-bottom:1rem;">قانون طلایی سبک امیر</div>
+          <p style="color:var(--text); font-size:0.95rem; line-height:1.8; font-style:italic;">
+            "وسط بازار معامله نمی‌کنیم؛<br>فقط روی ناحیه‌ها معامله می‌کنیم"
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WINRATE -->
+<div class="winrate-section reveal">
+  <div style="max-width:800px; margin:0 auto;">
+    <div class="section-tag">عملکرد</div>
+    <h2 class="section-title">نتایج <span>واقعی</span></h2>
+    <p style="color:var(--text2); font-size:1rem;">آمار بر اساس سیگنال‌های ردیابی شده در سیستم</p>
+    <div class="winrate-numbers">
+      <div class="winrate-item">
+        <span class="winrate-value">۷۲%</span>
+        <div class="winrate-label">وین‌ریت TP1</div>
+      </div>
+      <div class="winrate-item">
+        <span class="winrate-value">۵۸%</span>
+        <div class="winrate-label">وین‌ریت TP2</div>
+      </div>
+      <div class="winrate-item">
+        <span class="winrate-value">۲.۵R</span>
+        <div class="winrate-label">میانگین R/R</div>
+      </div>
+      <div class="winrate-item">
+        <span class="winrate-value">۲۴/۷</span>
+        <div class="winrate-label">اسکن بازار</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="reveal" style="text-align:center;">
+    <div class="section-tag">قیمت‌گذاری</div>
+    <h2 class="section-title">پلن مناسب <span>خود را انتخاب کنید</span></h2>
+  </div>
+  <div class="pricing-grid reveal">
+    <div class="price-card">
+      <div class="price-name">رایگان</div>
+      <div class="price-amount">$0<span>/ماه</span></div>
+      <div class="price-irr">رایگان</div>
+      <ul class="price-features">
+        <li>۲ ارز دیجیتال</li>
+        <li>سیگنال تلگرام</li>
+        <li class="no">بک‌تست</li>
+        <li class="no">SMS</li>
+        <li class="no">سیگنال VIP</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline">شروع رایگان</button>
+    </div>
+    <div class="price-card">
+      <div class="price-name">پایه</div>
+      <div class="price-amount">$9<span>/ماه</span></div>
+      <div class="price-irr">۴۵۰,۰۰۰ تومان</div>
+      <ul class="price-features">
+        <li>۵ ارز دیجیتال</li>
+        <li>سیگنال تلگرام</li>
+        <li class="no">بک‌تست</li>
+        <li class="no">SMS</li>
+        <li class="no">سیگنال VIP</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline">خرید پلن</button>
+    </div>
+    <div class="price-card popular">
+      <div class="popular-badge">⭐ پرطرفدار</div>
+      <div class="price-name">حرفه‌ای</div>
+      <div class="price-amount">$19<span>/ماه</span></div>
+      <div class="price-irr">۹۵۰,۰۰۰ تومان</div>
+      <ul class="price-features">
+        <li>۱۰ ارز دیجیتال</li>
+        <li>سیگنال تلگرام</li>
+        <li>بک‌تست کامل</li>
+        <li>SMS کاوه‌نگار</li>
+        <li class="no">سیگنال VIP</li>
+      </ul>
+      <button class="btn-plan btn-plan-gold">خرید پلن</button>
+    </div>
+    <div class="price-card">
+      <div class="price-name">VIP</div>
+      <div class="price-amount">$49<span>/ماه</span></div>
+      <div class="price-irr">۲,۴۵۰,۰۰۰ تومان</div>
+      <ul class="price-features">
+        <li>نامحدود ارز</li>
+        <li>سیگنال تلگرام</li>
+        <li>بک‌تست کامل</li>
+        <li>SMS کاوه‌نگار</li>
+        <li>سیگنال VIP اختصاصی</li>
+      </ul>
+      <button class="btn-plan btn-plan-outline">خرید پلن</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div style="max-width:1100px; margin:0 auto; padding:0 2rem 6rem;" id="contact">
+  <div class="tg-cta reveal">
+    <h2 class="tg-title">همین الان شروع کنید ⚡</h2>
+    <p class="tg-desc">ربات را رایگان امتحان کنید و اولین سیگنال را در تلگرام دریافت کنید</p>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+      <a href="/register" class="btn-primary">ثبت‌نام رایگان ←</a>
+      <a href="https://t.me/zandibot" class="btn-secondary">کانال تلگرام</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-logo">⚡ ZandiBot</span>
+  <p class="footer-desc">ربات سیگنال هوشمند کریپتو | سبک امیر</p>
+  <ul class="footer-links">
+    <li><a href="#features">امکانات</a></li>
+    <li><a href="#strategy">استراتژی</a></li>
+    <li><a href="#pricing">قیمت</a></li>
+    <li><a href="/dashboard">پنل کاربری</a></li>
+    <li><a href="/login">ورود</a></li>
+  </ul>
+  <p class="footer-copy">© ۲۰۲۶ ZandiBot — تمام حقوق محفوظ است</p>
+</footer>
+
+<script>
+// Reveal on scroll
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+reveals.forEach(r => observer.observe(r));
+
+// Lang toggle
+let isEn = false;
+function toggleLang() {
+  isEn = !isEn;
+  document.documentElement.lang = isEn ? 'en' : 'fa';
+  document.documentElement.dir = isEn ? 'ltr' : 'rtl';
+  document.querySelector('.lang-btn').textContent = isEn ? 'FA' : 'EN';
+}
+
+// Animate stats counter
+function animateCounter(el, target, suffix='') {
+  let current = 0;
+  const step = target / 60;
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = Math.round(current) + suffix;
+    if (current >= target) clearInterval(timer);
+  }, 16);
+}
+</script>
+</body>
+</html>

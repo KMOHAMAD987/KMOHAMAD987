@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZandiBot — پنل مدیریت</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+:root {
+  --bg:    #030508;
+  --bg2:   #060b12;
+  --bg3:   #091220;
+  --bg4:   #0c1728;
+  --neon:  #00ffcc;
+  --gold:  #f7931a;
+  --gold2: #ffb347;
+  --red:   #ff3366;
+  --green: #00ffaa;
+  --blue:  #3d8bff;
+  --purple:#7c3aed;
+  --text:  #dde8ff;
+  --text2: #3d5a80;
+  --text3: #7a9cc0;
+  --border:rgba(255,255,255,0.06);
+  --card:  rgba(255,255,255,0.025);
+  --sidebar-w: 260px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Vazirmatn',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--neon);border-radius:2px;}
+
+/* ══ LAYOUT ══ */
+.layout{display:flex;min-height:100vh;}
+
+/* ══ SIDEBAR ══ */
+.sidebar{
+  width:var(--sidebar-w);
+  background:rgba(6,11,18,.95);
+  backdrop-filter:blur(30px);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;right:0;bottom:0;
+  z-index:100;
+  transition:transform .3s ease;
+}
+
+.sb-logo{
+  padding:1.8rem 1.5rem 1.2rem;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.7rem;
+}
+
+.sb-orb{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;font-weight:900;color:#000;
+  box-shadow:0 0 18px rgba(247,147,26,.4);
+}
+
+.sb-brand{font-size:1rem;font-weight:900;letter-spacing:-.5px;}
+.sb-brand em{color:var(--neon);font-style:normal;}
+.sb-sub{font-size:.65rem;color:var(--text2);margin-top:.1rem;}
+
+.sb-admin-badge{
+  margin:1rem 1.5rem;
+  background:rgba(247,147,26,.08);
+  border:1px solid rgba(247,147,26,.2);
+  border-radius:10px;padding:.6rem 1rem;
+  display:flex;align-items:center;gap:.6rem;
+  font-size:.78rem;
+}
+.sb-admin-badge .dot{width:7px;height:7px;background:var(--gold);border-radius:50%;box-shadow:0 0 6px var(--gold);}
+.sb-admin-badge span{color:var(--gold);font-weight:600;}
+
+.sb-nav{flex:1;padding:.5rem 0;overflow-y:auto;}
+
+.sb-section-title{
+  font-size:.65rem;font-weight:700;color:var(--text2);
+  letter-spacing:2px;text-transform:uppercase;
+  padding:.8rem 1.5rem .4rem;
+}
+
+.sb-item{
+  display:flex;align-items:center;gap:.75rem;
+  padding:.7rem 1.5rem;
+  color:var(--text2);text-decoration:none;font-size:.85rem;
+  transition:all .25s;position:relative;cursor:pointer;
+  border:none;background:none;width:100%;text-align:right;
+  font-family:'Vazirmatn',sans-serif;
+}
+
+.sb-item::before{
+  content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:3px;height:0;background:var(--neon);border-radius:0 2px 2px 0;
+  transition:height .25s;
+}
+
+.sb-item:hover,.sb-item.active{color:var(--text);background:rgba(0,255,204,.04);}
+.sb-item:hover::before,.sb-item.active::before{height:60%;}
+.sb-item.active{color:var(--neon);}
+
+.sb-icon{font-size:1rem;flex-shrink:0;}
+.sb-badge{margin-right:auto;background:rgba(0,255,204,.1);color:var(--neon);padding:.1rem .5rem;border-radius:4px;font-size:.68rem;font-weight:700;}
+.sb-badge.red{background:rgba(255,51,102,.1);color:var(--red);}
+
+.sb-bottom{
+  padding:1rem 1.5rem;
+  border-top:1px solid var(--border);
+}
+
+.sb-user{
+  display:flex;align-items:center;gap:.75rem;
+  padding:.7rem;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;cursor:pointer;transition:all .3s;
+}
+.sb-user:hover{border-color:rgba(0,255,204,.2);}
+.sb-avatar{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--neon),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:700;color:#000;
+}
+.sb-uname{font-size:.82rem;font-weight:600;}
+.sb-urole{font-size:.7rem;color:var(--neon);}
+
+/* ══ MAIN ══ */
+.main{
+  margin-right:var(--sidebar-w);
+  flex:1;display:flex;flex-direction:column;min-height:100vh;
+}
+
+/* ══ TOPBAR ══ */
+.topbar{
+  background:rgba(6,11,18,.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:.9rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+}
+
+.topbar-title{font-size:1rem;font-weight:700;color:var(--text);}
+.topbar-sub{font-size:.75rem;color:var(--text2);margin-top:.1rem;}
+
+.topbar-actions{display:flex;align-items:center;gap:.8rem;}
+
+.tb-btn{
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text2);padding:.5rem 1rem;border-radius:9px;
+  font-size:.78rem;font-weight:500;cursor:pointer;
+  font-family:'Vazirmatn',sans-serif;transition:all .3s;
+  display:flex;align-items:center;gap:.4rem;
+}
+.tb-btn:hover{border-color:rgba(0,255,204,.2);color:var(--neon);}
+
+.tb-btn-primary{
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#000;border-color:transparent;font-weight:700;
+}
+.tb-btn-primary:hover{box-shadow:0 0 20px rgba(247,147,26,.4);color:#000;}
+
+.topbar-notif{
+  position:relative;
+}
+.notif-dot{
+  position:absolute;top:-3px;left:-3px;
+  width:9px;height:9px;background:var(--red);border-radius:50%;
+  box-shadow:0 0 6px var(--red);
+  animation:notifPulse 2s infinite;
+}
+@keyframes notifPulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ══ CONTENT ══ */
+.content{padding:2rem;flex:1;}
+
+/* ══ SECTION HEADER ══ */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.8rem;}
+.sec-title{font-size:1.2rem;font-weight:800;letter-spacing:-.5px;}
+.sec-sub{font-size:.8rem;color:var(--text2);margin-top:.2rem;}
+
+/* ══ STATS GRID ══ */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;
+  margin-bottom:2rem;
+}
+
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:1.4rem;
+  position:relative;overflow:hidden;
+  transition:all .4s cubic-bezier(.4,0,.2,1);
+}
+.stat-card:hover{border-color:rgba(0,255,204,.2);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--neon),transparent);opacity:.3;
+}
+
+.stat-icon{font-size:1.3rem;margin-bottom:.8rem;}
+.stat-label{font-size:.75rem;color:var(--text2);margin-bottom:.3rem;font-weight:500;}
+.stat-value{font-size:1.8rem;font-weight:900;letter-spacing:-1px;}
+.stat-value.neon{color:var(--neon);}
+.stat-value.gold{color:var(--gold);}
+.stat-value.green{color:var(--green);}
+.stat-value.red{color:var(--red);}
+.stat-change{font-size:.72rem;margin-top:.3rem;display:flex;align-items:center;gap:.3rem;}
+.stat-change.up{color:var(--green);}
+.stat-change.dn{color:var(--red);}
+
+/* ══ TABLES ══ */
+.table-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;overflow:hidden;margin-bottom:1.5rem;
+}
+
+.table-header{
+  padding:1.2rem 1.5rem;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+.table-title{font-size:.9rem;font-weight:700;}
+.table-actions{display:flex;gap:.5rem;}
+
+.t-search{
+  background:var(--bg2);border:1px solid var(--border);
+  color:var(--text);padding:.4rem .9rem;border-radius:8px;
+  font-size:.78rem;font-family:'Vazirmatn',sans-serif;
+  outline:none;transition:all .3s;width:180px;
+}
+.t-search:focus{border-color:rgba(0,255,204,.3);background:var(--bg3);}
+.t-search::placeholder{color:var(--text2);}
+
+table{width:100%;border-collapse:collapse;}
+th{
+  padding:.8rem 1.2rem;text-align:right;
+  font-size:.72rem;font-weight:700;color:var(--text2);
+  letter-spacing:1px;text-transform:uppercase;
+  background:rgba(255,255,255,.02);
+  border-bottom:1px solid var(--border);
+}
+td{
+  padding:.85rem 1.2rem;font-size:.83rem;
+  border-bottom:1px solid rgba(255,255,255,.03);
+  transition:background .2s;
+}
+tr:hover td{background:rgba(255,255,255,.02);}
+tr:last-child td{border-bottom:none;}
+
+/* ══ BADGES ══ */
+.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .7rem;border-radius:6px;font-size:.72rem;font-weight:700;}
+.badge-green{background:rgba(0,255,170,.1);color:var(--green);border:1px solid rgba(0,255,170,.2);}
+.badge-red{background:rgba(255,51,102,.1);color:var(--red);border:1px solid rgba(255,51,102,.2);}
+.badge-gold{background:rgba(247,147,26,.1);color:var(--gold);border:1px solid rgba(247,147,26,.2);}
+.badge-blue{background:rgba(61,139,255,.1);color:var(--blue);border:1px solid rgba(61,139,255,.2);}
+.badge-neon{background:rgba(0,255,204,.1);color:var(--neon);border:1px solid rgba(0,255,204,.2);}
+.badge-gray{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border);}
+
+/* ══ ACTION BTNS ══ */
+.act-btn{
+  background:transparent;border:1px solid var(--border);
+  color:var(--text2);padding:.3rem .65rem;border-radius:7px;
+  font-size:.72rem;cursor:pointer;font-family:'Vazirmatn',sans-serif;
+  transition:all .25s;
+}
+.act-btn:hover{color:var(--neon);border-color:rgba(0,255,204,.3);}
+.act-btn.danger:hover{color:var(--red);border-color:rgba(255,51,102,.3);}
+
+/* ══ GRID 2COL ══ */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.5rem;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.5rem;}
+
+/* ══ MINI CHART ══ */
+.mini-chart{height:50px;margin-top:.8rem;opacity:.7;}
+
+/* ══ SIGNAL CARDS ══ */
+.signals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+
+.sig-mini{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:1.2rem;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.sig-mini:hover{border-color:rgba(0,255,204,.2);transform:translateY(-3px);}
+.sig-mini::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--neon),transparent);opacity:.3;
+}
+.sig-mini.long{border-color:rgba(0,255,170,.12);}
+.sig-mini.short{border-color:rgba(255,51,102,.12);}
+
+.sig-mini-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;}
+.sig-sym{font-size:.9rem;font-weight:800;}
+.sig-dir{font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:6px;}
+.sig-dir.long{background:rgba(0,255,170,.1);color:var(--green);}
+.sig-dir.short{background:rgba(255,51,102,.1);color:var(--red);}
+
+.sig-mini-row{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:.3rem;}
+.sig-mini-lbl{color:var(--text2);}
+.sig-mini-val{font-weight:600;}
+
+.sig-score-bar{display:flex;gap:2px;margin-top:.6rem;}
+.sseg{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,.07);}
+.sseg.on{background:var(--neon);}
+
+/* ══ SETTINGS FORM ══ */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+
+.setting-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:1.5rem;
+}
+
+.setting-title{font-size:.88rem;font-weight:700;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem;}
+
+.form-group{margin-bottom:1rem;}
+.form-label{font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.4rem;display:block;}
+.form-input{
+  width:100%;background:var(--bg2);border:1px solid var(--border);
+  color:var(--text);padding:.6rem 1rem;border-radius:10px;
+  font-size:.83rem;font-family:'Vazirmatn',sans-serif;outline:none;
+  transition:all .3s;
+}
+.form-input:focus{border-color:rgba(0,255,204,.35);background:var(--bg3);}
+.form-input::placeholder{color:var(--text2);}
+
+.form-select{appearance:none;cursor:pointer;}
+
+.toggle-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.7rem 0;border-bottom:1px solid var(--border);
+}
+.toggle-row:last-child{border:none;}
+.toggle-label{font-size:.83rem;}
+.toggle-sub{font-size:.72rem;color:var(--text2);}
+
+.toggle{
+  width:40px;height:22px;border-radius:11px;
+  background:rgba(255,255,255,.1);position:relative;cursor:pointer;
+  transition:background .3s;border:none;
+  flex-shrink:0;
+}
+.toggle.on{background:var(--neon);}
+.toggle::after{
+  content:'';position:absolute;top:3px;right:3px;
+  width:16px;height:16px;border-radius:50%;background:#000;
+  transition:transform .3s;
+}
+.toggle.on::after{transform:translateX(-18px);}
+
+/* ══ USER DETAIL MODAL ══ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(10px);z-index:900;
+  display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+
+.modal{
+  background:var(--bg2);border:1px solid rgba(0,255,204,.15);
+  border-radius:24px;padding:2rem;width:500px;max-width:95%;
+  position:relative;animation:modalIn .3s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.9) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+.modal-close{
+  position:absolute;top:1rem;left:1rem;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text2);width:30px;height:30px;border-radius:8px;
+  cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;
+  transition:all .3s;
+}
+.modal-close:hover{color:var(--red);border-color:rgba(255,51,102,.3);}
+
+.modal-title{font-size:1rem;font-weight:800;margin-bottom:1.5rem;}
+
+/* ══ CHART PLACEHOLDER ══ */
+.chart-area{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:1.5rem;margin-bottom:1.5rem;
+  position:relative;overflow:hidden;
+}
+.chart-label{font-size:.8rem;font-weight:700;margin-bottom:1rem;color:var(--text3);}
+
+canvas.sparkline{width:100%;height:80px;}
+
+/* ══ TOAST ══ */
+.toast-wrap{position:fixed;bottom:2rem;left:2rem;z-index:999;display:flex;flex-direction:column;gap:.5rem;}
+.toast{
+  background:var(--bg2);border:1px solid rgba(0,255,204,.2);
+  border-radius:12px;padding:.8rem 1.2rem;font-size:.82rem;
+  display:flex;align-items:center;gap:.7rem;
+  animation:toastIn .3s ease;
+  box-shadow:0 10px 40px rgba(0,0,0,.5);
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.toast .t-ic{font-size:1rem;}
+.toast.success{border-color:rgba(0,255,170,.25);}
+.toast.error{border-color:rgba(255,51,102,.25);}
+
+/* ══ TABS ══ */
+.tabs{display:flex;gap:.3rem;padding:.3rem;background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:fit-content;margin-bottom:1.5rem;}
+.tab-btn{
+  padding:.5rem 1.1rem;border-radius:9px;font-size:.8rem;font-weight:600;
+  cursor:pointer;border:none;font-family:'Vazirmatn',sans-serif;
+  background:transparent;color:var(--text2);transition:all .3s;
+}
+.tab-btn.active{background:rgba(0,255,204,.1);color:var(--neon);box-shadow:0 0 12px rgba(0,255,204,.1);}
+
+/* ══ PAGES ══ */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:900px){
+  .sidebar{transform:translateX(100%);}.sidebar.open{transform:translateX(0);}
+  .main{margin-right:0;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .signals-grid{grid-template-columns:1fr 1fr;}
+  .settings-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ══════ SIDEBAR ══════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-orb">Z</div>
+    <div>
+      <div class="sb-brand">Zandi<em>Bot</em></div>
+      <div class="sb-sub">پنل مدیریت</div>
+    </div>
+  </div>
+
+  <div class="sb-admin-badge">
+    <div class="dot"></div>
+    <span>ادمین اصلی</span>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-section-title">داشبورد</div>
+    <button class="sb-item active" onclick="showPage('dashboard')">
+      <span class="sb-icon">📊</span> داشبورد
+    </button>
+    <button class="sb-item" onclick="showPage('signals')">
+      <span class="sb-icon">🎯</span> سیگنال‌ها
+      <span class="sb-badge">۱۲</span>
+    </button>
+    <button class="sb-item" onclick="showPage('winrate')">
+      <span class="sb-icon">📈</span> وین‌ریت
+    </button>
+
+    <div class="sb-section-title">مدیریت</div>
+    <button class="sb-item" onclick="showPage('users')">
+      <span class="sb-icon">👥</span> کاربران
+      <span class="sb-badge">۴۸</span>
+    </button>
+    <button class="sb-item" onclick="showPage('subscriptions')">
+      <span class="sb-icon">💎</span> اشتراک‌ها
+    </button>
+    <button class="sb-item" onclick="showPage('notifications')">
+      <span class="sb-icon">🔔</span> اطلاع‌رسانی
+      <span class="sb-badge red">۳</span>
+    </button>
+
+    <div class="sb-section-title">تنظیمات</div>
+    <button class="sb-item" onclick="showPage('bot-settings')">
+      <span class="sb-icon">🤖</span> تنظیمات ربات
+    </button>
+    <button class="sb-item" onclick="showPage('sms-settings')">
+      <span class="sb-icon">📱</span> تنظیمات پیامک
+    </button>
+    <button class="sb-item" onclick="showPage('site-settings')">
+      <span class="sb-icon">🌐</span> تنظیمات سایت
+    </button>
+    <button class="sb-item" onclick="showPage('security')">
+      <span class="sb-icon">🔐</span> امنیت
+    </button>
+  </nav>
+
+  <div class="sb-bottom">
+    <div class="sb-user">
+      <div class="sb-avatar">A</div>
+      <div>
+        <div class="sb-uname">Admin</div>
+        <div class="sb-urole">سوپر ادمین</div>
+      </div>
+      <span style="margin-right:auto;color:var(--text2);font-size:.8rem;">⚙</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════ MAIN ══════ -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">داشبورد</div>
+      <div class="topbar-sub" id="pageSub">خلاصه وضعیت سیستم</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="topbar-notif">
+        <button class="tb-btn">🔔<div class="notif-dot"></div></button>
+      </div>
+      <button class="tb-btn">📥 خروجی</button>
+      <button class="tb-btn tb-btn-primary" onclick="showToast('✅','ربات ری‌استارت شد','success')">🔄 ری‌استارت ربات</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ PAGE: DASHBOARD ══ -->
+    <div class="page active" id="page-dashboard">
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-label">کل کاربران</div>
+          <div class="stat-value neon">۴۸</div>
+          <div class="stat-change up">▲ +۵ این هفته</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-label">سیگنال امروز</div>
+          <div class="stat-value gold">۱۲</div>
+          <div class="stat-change up">▲ +۳ نسبت به دیروز</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-label">وین‌ریت TP1</div>
+          <div class="stat-value green">۷۲%</div>
+          <div class="stat-change up">▲ +۲% این ماه</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💎</div>
+          <div class="stat-label">درآمد ماهانه</div>
+          <div class="stat-value gold">$۲,۸۴۰</div>
+          <div class="stat-change up">▲ +۱۲% نسبت به ماه قبل</div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid-2">
+        <div class="chart-area">
+          <div class="chart-label">📊 سیگنال‌های ۷ روز اخیر</div>
+          <canvas id="chart1" class="sparkline"></canvas>
+        </div>
+        <div class="chart-area">
+          <div class="chart-label">📈 وین‌ریت ۳۰ روز اخیر</div>
+          <canvas id="chart2" class="sparkline"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent signals -->
+      <div class="table-card">
+        <div class="table-header">
+          <div><div class="table-title">🎯 آخرین سیگنال‌ها</div></div>
+          <div class="table-actions">
+            <button class="act-btn" onclick="showPage('signals')">مشاهده همه</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ارز</th><th>جهت</th><th>امتیاز</th><th>ورود</th><th>وضعیت</th><th>زمان</th>
+            </tr>
+          </thead>
+          <tbody id="recentSignals">
+            <tr><td><b>BTCUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>9/11</td><td>105,250</td><td><span class="badge badge-neon">● باز</span></td><td style="color:var(--text2);">۱۵ دقیقه پیش</td></tr>
+            <tr><td><b>ETHUSDT</b></td><td><span class="badge badge-red">🔴 SHORT</span></td><td>7/11</td><td>3,842</td><td><span class="badge badge-green">TP1 ✓</span></td><td style="color:var(--text2);">۱ ساعت پیش</td></tr>
+            <tr><td><b>SOLUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>8/11</td><td>184.2</td><td><span class="badge badge-green">TP2 ✓</span></td><td style="color:var(--text2);">۳ ساعت پیش</td></tr>
+            <tr><td><b>BNBUSDT</b></td><td><span class="badge badge-red">🔴 SHORT</span></td><td>6/11</td><td>641</td><td><span class="badge badge-red">SL ✕</span></td><td style="color:var(--text2);">۵ ساعت پیش</td></tr>
+            <tr><td><b>XRPUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>7/11</td><td>0.838</td><td><span class="badge badge-gold">منقضی</span></td><td style="color:var(--text2);">۸ ساعت پیش</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent users -->
+      <div class="table-card">
+        <div class="table-header">
+          <div><div class="table-title">👥 کاربران جدید</div></div>
+          <div class="table-actions">
+            <button class="act-btn" onclick="showPage('users')">مشاهده همه</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>نام</th><th>پلن</th><th>وضعیت</th><th>تاریخ عضویت</th><th>عملیات</th></tr></thead>
+          <tbody>
+            <tr><td><b>علی محمدی</b><div style="font-size:.7rem;color:var(--text2);">ali@gmail.com</div></td><td><span class="badge badge-gold">VIP</span></td><td><span class="badge badge-green">● فعال</span></td><td style="color:var(--text2);">۱۴۰۵/۳/۱۶</td><td><button class="act-btn" onclick="openUserModal('علی محمدی')">جزئیات</button></td></tr>
+            <tr><td><b>سارا احمدی</b><div style="font-size:.7rem;color:var(--text2);">sara@gmail.com</div></td><td><span class="badge badge-neon">حرفه‌ای</span></td><td><span class="badge badge-green">● فعال</span></td><td style="color:var(--text2);">۱۴۰۵/۳/۱۵</td><td><button class="act-btn" onclick="openUserModal('سارا احمدی')">جزئیات</button></td></tr>
+            <tr><td><b>رضا کریمی</b><div style="font-size:.7rem;color:var(--text2);">reza@gmail.com</div></td><td><span class="badge badge-blue">پایه</span></td><td><span class="badge badge-gold">● تست</span></td><td style="color:var(--text2);">۱۴۰۵/۳/۱۶</td><td><button class="act-btn" onclick="openUserModal('رضا کریمی')">جزئیات</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: SIGNALS ══ -->
+    <div class="page" id="page-signals">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterSigs(this,'all')">همه</button>
+        <button class="tab-btn" onclick="filterSigs(this,'open')">باز</button>
+        <button class="tab-btn" onclick="filterSigs(this,'closed')">بسته</button>
+        <button class="tab-btn" onclick="filterSigs(this,'long')">LONG</button>
+        <button class="tab-btn" onclick="filterSigs(this,'short')">SHORT</button>
+      </div>
+
+      <div class="signals-grid" id="sigGrid">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+
+    <!-- ══ PAGE: WIN RATE ══ -->
+    <div class="page" id="page-winrate">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-label">وین‌ریت TP1</div><div class="stat-value green">۷۲%</div></div>
+        <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-label">وین‌ریت TP2</div><div class="stat-value green">۵۸%</div></div>
+        <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-label">میانگین R/R</div><div class="stat-value gold">2.5R</div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">کل سیگنال</div><div class="stat-value neon">۴۳۰</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="table-card">
+          <div class="table-header"><div class="table-title">وین‌ریت بر اساس ارز</div></div>
+          <table>
+            <thead><tr><th>ارز</th><th>کل</th><th>TP1</th><th>TP2</th><th>SL</th><th>وین‌ریت</th></tr></thead>
+            <tbody>
+              <tr><td><b>BTCUSDT</b></td><td>142</td><td>108</td><td>82</td><td>34</td><td><span class="badge badge-green">۷۶%</span></td></tr>
+              <tr><td><b>ETHUSDT</b></td><td>118</td><td>84</td><td>61</td><td>34</td><td><span class="badge badge-green">۷۱%</span></td></tr>
+              <tr><td><b>SOLUSDT</b></td><td>76</td><td>58</td><td>42</td><td>18</td><td><span class="badge badge-green">۷۶%</span></td></tr>
+              <tr><td><b>BNBUSDT</b></td><td>54</td><td>36</td><td>27</td><td>18</td><td><span class="badge badge-gold">۶۷%</span></td></tr>
+              <tr><td><b>XRPUSDT</b></td><td>40</td><td>25</td><td>18</td><td>15</td><td><span class="badge badge-gold">۶۳%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><div class="table-title">وین‌ریت بر اساس جهت</div></div>
+          <table>
+            <thead><tr><th>جهت</th><th>کل</th><th>TP1</th><th>SL</th><th>وین‌ریت</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-green">🟢 LONG</span></td><td>268</td><td>202</td><td>66</td><td><span class="badge badge-green">۷۵%</span></td></tr>
+              <tr><td><span class="badge badge-red">🔴 SHORT</span></td><td>162</td><td>109</td><td>53</td><td><span class="badge badge-gold">۶۷%</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: USERS ══ -->
+    <div class="page" id="page-users">
+      <div class="table-card">
+        <div class="table-header">
+          <div><div class="table-title">👥 مدیریت کاربران</div></div>
+          <div class="table-actions">
+            <input type="text" class="t-search" placeholder="🔍 جستجو کاربر...">
+            <button class="tb-btn tb-btn-primary" onclick="showToast('➕','فرم افزودن کاربر باز شد','success')">+ کاربر جدید</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>نام</th><th>تلفن/ایمیل</th><th>پلن</th>
+              <th>تلگرام</th><th>پیامک</th><th>وضعیت</th><th>اشتراک تا</th><th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable">
+            <tr>
+              <td style="color:var(--text2);">1</td>
+              <td><b>علی محمدی</b></td>
+              <td style="color:var(--text2);">09121234567</td>
+              <td><span class="badge badge-gold">VIP</span></td>
+              <td><span class="badge badge-green">✓ فعال</span></td>
+              <td><span class="badge badge-green">✓ فعال</span></td>
+              <td><span class="badge badge-green">● فعال</span></td>
+              <td style="color:var(--text2);">۱۴۰۵/۴/۱۶</td>
+              <td style="display:flex;gap:.4rem;">
+                <button class="act-btn" onclick="openUserModal('علی محمدی')">✏️</button>
+                <button class="act-btn danger">🚫</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:var(--text2);">2</td>
+              <td><b>سارا احمدی</b></td>
+              <td style="color:var(--text2);">sara@gmail.com</td>
+              <td><span class="badge badge-neon">حرفه‌ای</span></td>
+              <td><span class="badge badge-green">✓ فعال</span></td>
+              <td><span class="badge badge-gray">✕ غیرفعال</span></td>
+              <td><span class="badge badge-green">● فعال</span></td>
+              <td style="color:var(--text2);">۱۴۰۵/۴/۱۵</td>
+              <td style="display:flex;gap:.4rem;">
+                <button class="act-btn" onclick="openUserModal('سارا احمدی')">✏️</button>
+                <button class="act-btn danger">🚫</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:var(--text2);">3</td>
+              <td><b>رضا کریمی</b></td>
+              <td style="color:var(--text2);">09351234567</td>
+              <td><span class="badge badge-blue">پایه</span></td>
+              <td><span class="badge badge-green">✓ فعال</span></td>
+              <td><span class="badge badge-gray">✕ غیرفعال</span></td>
+              <td><span class="badge badge-gold">● تست</span></td>
+              <td style="color:var(--text2);">۱۴۰۵/۳/۱۸</td>
+              <td style="display:flex;gap:.4rem;">
+                <button class="act-btn" onclick="openUserModal('رضا کریمی')">✏️</button>
+                <button class="act-btn danger">🚫</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: BOT SETTINGS ══ -->
+    <div class="page" id="page-bot-settings">
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-title">🤖 تنظیمات اسکن</div>
+          <div class="form-group">
+            <label class="form-label">فاصله اسکن (دقیقه)</label>
+            <input type="number" class="form-input" value="15">
+          </div>
+          <div class="form-group">
+            <label class="form-label">حداقل امتیاز سیگنال</label>
+            <input type="number" class="form-input" value="6" min="1" max="11">
+          </div>
+          <div class="form-group">
+            <label class="form-label">حداقل R/R</label>
+            <input type="number" class="form-input" value="1.5" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">حداقل کانفیدنس</label>
+            <select class="form-input form-select">
+              <option>MEDIUM</option><option>HIGH</option><option>LOW</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">کولداون سیگنال (دقیقه)</label>
+            <input type="number" class="form-input" value="60">
+          </div>
+          <button class="tb-btn tb-btn-primary" style="width:100%;margin-top:.5rem;" onclick="showToast('✅','تنظیمات ذخیره شد','success')">ذخیره تنظیمات</button>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">🪙 ارزهای فعال</div>
+          <div style="display:flex;flex-direction:column;gap:.3rem;">
+            <div class="toggle-row">
+              <div><div class="toggle-label">Bitcoin (BTC)</div><div class="toggle-sub">BTCUSDT</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Ethereum (ETH)</div><div class="toggle-sub">ETHUSDT</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Solana (SOL)</div><div class="toggle-sub">SOLUSDT</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">BNB Chain</div><div class="toggle-sub">BNBUSDT</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Ripple (XRP)</div><div class="toggle-sub">XRPUSDT</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Avalanche (AVAX)</div><div class="toggle-sub">AVAXUSDT</div></div>
+              <button class="toggle" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Dogecoin (DOGE)</div><div class="toggle-sub">DOGEUSDT</div></div>
+              <button class="toggle" onclick="this.classList.toggle('on')"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">📊 تایم‌فریم‌ها</div>
+          <div class="toggle-row"><div><div class="toggle-label">4H — جهت اصلی</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">1H — ساختار معامله</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">15m — ستاپ ورود</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">5m — تریگر دقیق</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">🔔 اطلاع‌رسانی</div>
+          <div class="toggle-row"><div><div class="toggle-label">ارسال سیگنال تلگرام</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">اطلاع‌رسانی TP1</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">اطلاع‌رسانی TP2</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">اطلاع‌رسانی SL</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">سیگنال VIP جداگانه</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: SMS SETTINGS ══ -->
+    <div class="page" id="page-sms-settings">
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-title">📱 تنظیمات کاوه‌نگار</div>
+          <div class="form-group">
+            <label class="form-label">API Key کاوه‌نگار</label>
+            <input type="password" class="form-input" placeholder="••••••••••••••••••••">
+          </div>
+          <div class="form-group">
+            <label class="form-label">شماره ارسال</label>
+            <input type="text" class="form-input" placeholder="10002060" value="10002060">
+          </div>
+          <div class="form-group">
+            <label class="form-label">قالب پیامک سیگنال</label>
+            <textarea class="form-input" rows="4" style="resize:none;">سیگنال ZandiBot
+{symbol} | {direction}
+ورود: {entry}
+TP1: {tp1} | SL: {sl}
+امتیاز: {score}/11</textarea>
+          </div>
+          <div style="display:flex;gap:.6rem;margin-top:.5rem;">
+            <button class="tb-btn" onclick="showToast('📱','پیامک تست ارسال شد','success')" style="flex:1;">تست ارسال</button>
+            <button class="tb-btn tb-btn-primary" style="flex:1;" onclick="showToast('✅','تنظیمات SMS ذخیره شد','success')">ذخیره</button>
+          </div>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">⚙️ تنظیمات ارسال</div>
+          <div class="toggle-row"><div><div class="toggle-label">پیامک سیگنال جدید</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">پیامک TP1</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">پیامک TP2</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">پیامک SL</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">فقط سیگنال HIGH</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="form-group" style="margin-top:1rem;">
+            <label class="form-label">محدودیت روزانه (پیامک)</label>
+            <input type="number" class="form-input" value="10">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: SITE SETTINGS ══ -->
+    <div class="page" id="page-site-settings">
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-title">🌐 محتوای سایت</div>
+          <div class="form-group"><label class="form-label">عنوان سایت</label><input type="text" class="form-input" value="ZandiBot — دستیار هوشمند سیگنال‌دهی کریپتو"></div>
+          <div class="form-group"><label class="form-label">توضیح کوتاه</label><textarea class="form-input" rows="3" style="resize:none;">ZandiBot با تحلیل چندلایه بازار، بهترین لحظه ورود را شناسایی و سیگنال کامل را مستقیم در تلگرام شما ارسال می‌کند.</textarea></div>
+          <div class="form-group"><label class="form-label">آمار وین‌ریت (نمایش)</label><input type="text" class="form-input" value="۷۲%"></div>
+          <div class="form-group"><label class="form-label">آمار سیگنال کل</label><input type="text" class="form-input" value="+۴۳۰"></div>
+          <button class="tb-btn tb-btn-primary" style="width:100%;" onclick="showToast('✅','محتوای سایت ذخیره شد','success')">ذخیره تغییرات</button>
+        </div>
+
+        <div class="setting-card">
+          <div class="setting-title">💎 قیمت‌گذاری</div>
+          <div class="form-group"><label class="form-label">پلن پایه — دلار</label><input type="number" class="form-input" value="29"></div>
+          <div class="form-group"><label class="form-label">پلن پایه — تومان</label><input type="number" class="form-input" value="1450000"></div>
+          <div class="form-group"><label class="form-label">پلن حرفه‌ای — دلار</label><input type="number" class="form-input" value="59"></div>
+          <div class="form-group"><label class="form-label">پلن حرفه‌ای — تومان</label><input type="number" class="form-input" value="2950000"></div>
+          <div class="form-group"><label class="form-label">پلن VIP — دلار</label><input type="number" class="form-input" value="99"></div>
+          <div class="form-group"><label class="form-label">پلن VIP — تومان</label><input type="number" class="form-input" value="4950000"></div>
+          <button class="tb-btn tb-btn-primary" style="width:100%;" onclick="showToast('✅','قیمت‌ها ذخیره شد','success')">ذخیره قیمت‌ها</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: SECURITY ══ -->
+    <div class="page" id="page-security">
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-title">🔐 تغییر رمز عبور</div>
+          <div class="form-group"><label class="form-label">رمز فعلی</label><input type="password" class="form-input" placeholder="••••••••"></div>
+          <div class="form-group"><label class="form-label">رمز جدید</label><input type="password" class="form-input" placeholder="••••••••"></div>
+          <div class="form-group"><label class="form-label">تکرار رمز جدید</label><input type="password" class="form-input" placeholder="••••••••"></div>
+          <button class="tb-btn tb-btn-primary" style="width:100%;" onclick="showToast('✅','رمز عبور تغییر کرد','success')">تغییر رمز</button>
+        </div>
+        <div class="setting-card">
+          <div class="setting-title">🛡️ تنظیمات امنیتی</div>
+          <div class="toggle-row"><div><div class="toggle-label">احراز هویت دو مرحله‌ای</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">محدودیت IP</div></div><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+          <div class="toggle-row"><div><div class="toggle-label">لاگ ورود</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          <div class="form-group" style="margin-top:1rem;"><label class="form-label">مدت نشست (دقیقه)</label><input type="number" class="form-input" value="120"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: NOTIFICATIONS ══ -->
+    <div class="page" id="page-notifications">
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">🔔 اطلاعیه‌ها</div></div>
+        <table>
+          <thead><tr><th>نوع</th><th>پیام</th><th>زمان</th><th>وضعیت</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-green">✅ TP2</span></td><td>BTCUSDT LONG — TP2 زده شد (+2.5R)</td><td style="color:var(--text2);">۵ دقیقه پیش</td><td><span class="badge badge-neon">جدید</span></td></tr>
+            <tr><td><span class="badge badge-red">❌ SL</span></td><td>ETHUSDT SHORT — SL زده شد (-1R)</td><td style="color:var(--text2);">۱ ساعت پیش</td><td><span class="badge badge-neon">جدید</span></td></tr>
+            <tr><td><span class="badge badge-blue">👤 کاربر</span></td><td>کاربر جدید ثبت‌نام کرد: رضا کریمی</td><td style="color:var(--text2);">۲ ساعت پیش</td><td><span class="badge badge-neon">جدید</span></td></tr>
+            <tr><td><span class="badge badge-green">✅ TP1</span></td><td>SOLUSDT LONG — TP1 زده شد (+1.5R)</td><td style="color:var(--text2);">۳ ساعت پیش</td><td><span class="badge badge-gray">خوانده شد</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: SUBSCRIPTIONS ══ -->
+    <div class="page" id="page-subscriptions">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">💎</div><div class="stat-label">اشتراک VIP</div><div class="stat-value gold">۸</div></div>
+        <div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-label">اشتراک حرفه‌ای</div><div class="stat-value neon">۲۲</div></div>
+        <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">اشتراک پایه</div><div class="stat-value blue" style="color:var(--blue);">۱۵</div></div>
+        <div class="stat-card"><div class="stat-icon">🧪</div><div class="stat-label">در حال تست</div><div class="stat-value" style="color:var(--text3);">۳</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">💎 لیست اشتراک‌ها</div></div>
+        <table>
+          <thead><tr><th>کاربر</th><th>پلن</th><th>شروع</th><th>پایان</th><th>وضعیت</th><th>مبلغ</th></tr></thead>
+          <tbody>
+            <tr><td><b>علی محمدی</b></td><td><span class="badge badge-gold">VIP</span></td><td style="color:var(--text2);">۱۴۰۵/۳/۱۶</td><td style="color:var(--text2);">۱۴۰۵/۴/۱۶</td><td><span class="badge badge-green">● فعال</span></td><td style="color:var(--gold);">$99</td></tr>
+            <tr><td><b>سارا احمدی</b></td><td><span class="badge badge-neon">حرفه‌ای</span></td><td style="color:var(--text2);">۱۴۰۵/۳/۱</td><td style="color:var(--text2);">۱۴۰۵/۴/۱</td><td><span class="badge badge-green">● فعال</span></td><td style="color:var(--gold);">$59</td></tr>
+            <tr><td><b>رضا کریمی</b></td><td><span class="badge badge-blue">پایه</span></td><td style="color:var(--text2);">۱۴۰۵/۳/۱۶</td><td style="color:var(--text2);">۱۴۰۵/۳/۱۸</td><td><span class="badge badge-gold">🧪 تست</span></td><td style="color:var(--text2);">رایگان</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+</div>
+
+<!-- ══ USER MODAL ══ -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">✏️ ویرایش کاربر: <span id="modalUserName"></span></div>
+    <div class="form-group"><label class="form-label">نام و نام خانوادگی</label><input type="text" class="form-input" id="editName"></div>
+    <div class="form-group"><label class="form-label">شماره موبایل</label><input type="text" class="form-input" id="editPhone"></div>
+    <div class="form-group"><label class="form-label">Chat ID تلگرام</label><input type="text" class="form-input" id="editTg" placeholder="مثال: 123456789"></div>
+    <div class="form-group">
+      <label class="form-label">پلن اشتراک</label>
+      <select class="form-input form-select">
+        <option>پایه ($29)</option><option>حرفه‌ای ($59)</option><option selected>VIP ($99)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">تاریخ انقضا اشتراک</label>
+      <input type="date" class="form-input">
+    </div>
+    <div style="display:flex;gap:.6rem;margin-top:1rem;">
+      <button class="tb-btn" style="flex:1;" onclick="closeModal()">انصراف</button>
+      <button class="tb-btn tb-btn-primary" style="flex:1;" onclick="saveUser()">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ═══ PAGE NAVIGATION ═══ */
+const pages = {
+  'dashboard':    {title:'داشبورد',sub:'خلاصه وضعیت سیستم'},
+  'signals':      {title:'سیگنال‌ها',sub:'مدیریت و مشاهده سیگنال‌ها'},
+  'winrate':      {title:'وین‌ریت',sub:'آمار دقیق عملکرد'},
+  'users':        {title:'کاربران',sub:'مدیریت کاربران و اشتراک‌ها'},
+  'subscriptions':{title:'اشتراک‌ها',sub:'مدیریت پلن‌ها و پرداخت‌ها'},
+  'notifications':{title:'اطلاع‌رسانی',sub:'پیام‌ها و هشدارها'},
+  'bot-settings': {title:'تنظیمات ربات',sub:'پیکربندی سیستم سیگنال'},
+  'sms-settings': {title:'تنظیمات پیامک',sub:'اتصال کاوه‌نگار'},
+  'site-settings':{title:'تنظیمات سایت',sub:'ویرایش محتوا و قیمت‌ها'},
+  'security':     {title:'امنیت',sub:'مدیریت دسترسی و رمز عبور'},
+};
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+
+  const el = document.getElementById('page-'+id);
+  if(el) el.classList.add('active');
+
+  // find button
+  document.querySelectorAll('.sb-item').forEach(b=>{
+    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${id}'`)) b.classList.add('active');
+  });
+
+  const info = pages[id] || {title:id,sub:''};
+  document.getElementById('pageTitle').textContent = info.title;
+  document.getElementById('pageSub').textContent   = info.sub;
+
+  // generate signals page
+  if(id==='signals') renderSignals('all');
+}
+
+/* ═══ SIGNALS RENDER ═══ */
+const signalsData = [
+  {sym:'BTCUSDT',dir:'LONG',score:9,entry:105250,tp1:106980,sl:104100,status:'open'},
+  {sym:'ETHUSDT',dir:'SHORT',score:7,entry:3842,tp1:3710,sl:3920,status:'tp1'},
+  {sym:'SOLUSDT',dir:'LONG',score:8,entry:184.2,tp1:188.5,sl:181,status:'tp2'},
+  {sym:'BNBUSDT',dir:'SHORT',score:6,entry:641,tp1:618,sl:655,status:'sl'},
+  {sym:'XRPUSDT',dir:'LONG',score:7,entry:0.838,tp1:0.862,sl:0.818,status:'open'},
+  {sym:'BTCUSDT',dir:'LONG',score:8,entry:104100,tp1:106200,sl:102800,status:'tp1'},
+];
+
+function renderSignals(filter){
+  const grid = document.getElementById('sigGrid');
+  let data = filter==='all' ? signalsData :
+             filter==='long' ? signalsData.filter(s=>s.dir==='LONG') :
+             filter==='short' ? signalsData.filter(s=>s.dir==='SHORT') :
+             filter==='open' ? signalsData.filter(s=>s.status==='open') :
+             signalsData.filter(s=>s.status!=='open');
+
+  grid.innerHTML = data.map(s=>`
+    <div class="sig-mini ${s.dir.toLowerCase()}">
+      <div class="sig-mini-head">
+        <span class="sig-sym">${s.sym}</span>
+        <span class="sig-dir ${s.dir.toLowerCase()}">${s.dir==='LONG'?'🟢':'🔴'} ${s.dir}</span>
+      </div>
+      <div class="sig-mini-row"><span class="sig-mini-lbl">ورود</span><span class="sig-mini-val">${s.entry.toLocaleString()}</span></div>
+      <div class="sig-mini-row"><span class="sig-mini-lbl">TP1</span><span class="sig-mini-val" style="color:var(--green)">${s.tp1.toLocaleString()}</span></div>
+      <div class="sig-mini-row"><span class="sig-mini-lbl">SL</span><span class="sig-mini-val" style="color:var(--red)">${s.sl.toLocaleString()}</span></div>
+      <div class="sig-mini-row"><span class="sig-mini-lbl">وضعیت</span><span class="sig-mini-val">${statusBadge(s.status)}</span></div>
+      <div style="font-size:.7rem;color:var(--text2);margin-top:.5rem;">امتیاز: ${s.score}/11</div>
+      <div class="sig-score-bar">
+        ${Array.from({length:11},(_,i)=>`<div class="sseg ${i<s.score?'on':''}"></div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function statusBadge(s){
+  const map = {open:'<span class="badge badge-neon">● باز</span>',tp1:'<span class="badge badge-green">TP1 ✓</span>',tp2:'<span class="badge badge-green">TP2 ✓</span>',sl:'<span class="badge badge-red">SL ✕</span>'};
+  return map[s]||s;
+}
+
+function filterSigs(btn,f){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSignals(f);
+}
+
+/* ═══ CHARTS ═══ */
+function drawSparkline(id, data, color){
+  const canvas = document.getElementById(id);
+  if(!canvas) return;
+  canvas.width  = canvas.parentElement.offsetWidth - 48;
+  canvas.height = 80;
+  const ctx = canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  const max=Math.max(...data), min=Math.min(...data);
+  const pts = data.map((v,i)=>({
+    x: i*(w/(data.length-1)),
+    y: h - ((v-min)/(max-min))*(h-10)-5
+  }));
+  // gradient fill
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,color+'40'); grad.addColorStop(1,color+'00');
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+  pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+  // dots
+  pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
+}
+
+setTimeout(()=>{
+  drawSparkline('chart1',[8,12,7,15,10,18,12],'#00ffcc');
+  drawSparkline('chart2',[65,70,68,72,71,74,72],'#f7931a');
+},300);
+
+/* ═══ MODAL ═══ */
+function openUserModal(name){
+  document.getElementById('modalUserName').textContent = name;
+  document.getElementById('editName').value = name;
+  document.getElementById('editPhone').value = '09121234567';
+  document.getElementById('editTg').value = '123456789';
+  document.getElementById('userModal').classList.add('open');
+}
+function closeModal(){ document.getElementById('userModal').classList.remove('open'); }
+function saveUser(){ closeModal(); showToast('✅','اطلاعات کاربر ذخیره شد','success'); }
+
+/* ═══ TOAST ═══ */
+function showToast(icon, msg, type='success'){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="t-ic">${icon}</span><span>${msg}</span>`;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(20px)'; t.style.transition='all .3s'; setTimeout(()=>t.remove(),300); },3000);
+}
+
+/* ═══ GSAP ENTRANCE ═══ */
+gsap.from('.sidebar',{x:80,opacity:0,duration:.8,ease:'power3.out'});
+gsap.from('.topbar',{y:-40,opacity:0,duration:.6,ease:'power3.out'});
+gsap.from('.stat-card',{opacity:0,y:30,stagger:.08,duration:.6,ease:'power3.out',delay:.3});
+
+/* ═══ CLOSE MODAL ON OVERLAY ═══ */
+document.getElementById('userModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+</script>
+</body>
+</html>

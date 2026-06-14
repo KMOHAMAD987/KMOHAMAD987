@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZandiBot — دستیار هوشمند سیگنال‌دهی کریپتو</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+<style>
+/* ════════════════════════════════════════
+   ROOT & RESET
+════════════════════════════════════════ */
+:root {
+  --bg:     #030508;
+  --bg2:    #060b12;
+  --bg3:    #091220;
+  --neon:   #00ffcc;
+  --neon2:  #00aaff;
+  --gold:   #f7931a;
+  --gold2:  #ffb347;
+  --purple: #7c3aed;
+  --red:    #ff3366;
+  --text:   #dde8ff;
+  --text2:  #3d5a80;
+  --text3:  #7a9cc0;
+  --border: rgba(255,255,255,0.055);
+  --glass:  rgba(255,255,255,0.028);
+  --glass2: rgba(255,255,255,0.05);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:auto; font-size:16px; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Vazirmatn', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  cursor: none;
+}
+
+/* ════ CUSTOM CURSOR ════ */
+.cursor {
+  position: fixed;
+  width: 12px; height: 12px;
+  background: var(--neon);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform .15s ease, background .3s;
+  mix-blend-mode: difference;
+  transform: translate(-50%,-50%);
+}
+
+.cursor-follower {
+  position: fixed;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(0,255,204,.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transition: transform .4s cubic-bezier(.4,0,.2,1);
+  transform: translate(-50%,-50%);
+}
+
+/* ════ SCROLLBAR ════ */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: linear-gradient(var(--neon), var(--gold)); border-radius: 2px; }
+
+/* ════ CANVAS ════ */
+#universe { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+/* ════ LOADER ════ */
+#loader {
+  position: fixed; inset: 0; z-index: 10000;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 2rem;
+}
+
+.loader-logo {
+  font-size: 3rem; font-weight: 900; letter-spacing: -2px;
+  overflow: hidden;
+}
+
+.loader-logo span { display: inline-block; }
+.loader-logo .l-z { color: var(--neon); }
+.loader-logo .l-rest { color: var(--text); }
+
+.loader-bar-wrap {
+  width: 200px; height: 1px;
+  background: rgba(255,255,255,.1);
+  border-radius: 1px; overflow: hidden;
+}
+
+.loader-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--neon), var(--gold));
+  border-radius: 1px;
+}
+
+.loader-pct { font-size: .75rem; color: var(--text2); font-weight: 300; letter-spacing: 3px; }
+
+/* ════ NAV ════ */
+nav {
+  position: fixed;
+  top: 1.2rem; left: 50%;
+  transform: translateX(-50%);
+  z-index: 800;
+  width: calc(100% - 3rem);
+  max-width: 1080px;
+  background: rgba(3,5,8,.75);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(0,255,204,.08);
+  border-radius: 18px;
+  padding: .85rem 1.8rem;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: all .5s ease;
+}
+
+nav.scrolled {
+  background: rgba(3,5,8,.92);
+  border-color: rgba(0,255,204,.15);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 1px rgba(0,255,204,.15) inset;
+}
+
+.nav-logo {
+  display: flex; align-items: center; gap: .65rem;
+  text-decoration: none;
+}
+
+.nav-orb {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; font-weight: 900; color: #000;
+  box-shadow: 0 0 20px rgba(247,147,26,.45);
+  transition: box-shadow .3s;
+}
+
+.nav-logo:hover .nav-orb { box-shadow: 0 0 35px rgba(247,147,26,.7); }
+
+.nav-brand {
+  font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text);
+}
+.nav-brand em { color: var(--neon); font-style: normal; }
+
+.nav-links { display:flex; gap:1.6rem; list-style:none; }
+.nav-links a {
+  color: var(--text2); text-decoration: none;
+  font-size: .83rem; font-weight: 500;
+  transition: color .3s; position: relative; padding-bottom: 2px;
+}
+.nav-links a::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 0; right: 0; height: 1px;
+  background: var(--neon);
+  transform: scaleX(0); transform-origin: right;
+  transition: transform .3s ease;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
+
+.nav-cta-group { display:flex; gap:.65rem; align-items:center; }
+
+.btn-outline-nav {
+  background: transparent;
+  border: 1px solid rgba(0,255,204,.2);
+  color: var(--neon); padding: .45rem 1.1rem;
+  border-radius: 10px; font-size: .8rem; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  font-family: 'Vazirmatn', sans-serif;
+  transition: all .3s;
+}
+.btn-outline-nav:hover { background: rgba(0,255,204,.08); border-color: var(--neon); }
+
+.btn-fill-nav {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #000; padding: .45rem 1.3rem;
+  border-radius: 10px; font-size: .8rem; font-weight: 800;
+  cursor: pointer; text-decoration: none;
+  font-family: 'Vazirmatn', sans-serif; border: none;
+  transition: all .3s;
+  box-shadow: 0 0 18px rgba(247,147,26,.3);
+}
+.btn-fill-nav:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(247,147,26,.55); }
+
+/* ════ HERO ════ */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 1;
+  padding: 8rem 2rem 5rem;
+  overflow: hidden;
+}
+
+/* Grid */
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,204,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,204,.02) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, black 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, black 0%, transparent 75%);
+}
+
+/* Orbs */
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px); pointer-events: none;
+}
+.orb-1 { width:600px;height:600px; background:rgba(0,255,204,.04); top:20%;left:50%;transform:translateX(-50%); }
+.orb-2 { width:400px;height:400px; background:rgba(247,147,26,.05); top:10%;right:-5%; animation:orbDrift 8s ease-in-out infinite; }
+.orb-3 { width:350px;height:350px; background:rgba(124,58,237,.04); bottom:15%;left:-5%; animation:orbDrift 10s ease-in-out infinite reverse; }
+@keyframes orbDrift { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-40px) scale(1.08);} }
+
+.hero-inner {
+  text-align: center; max-width: 860px;
+  position: relative; z-index: 2;
+}
+
+/* ── LIVE BADGE ── */
+.hero-badge {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: rgba(0,255,204,.05);
+  border: 1px solid rgba(0,255,204,.18);
+  color: var(--neon); padding: .38rem 1.1rem;
+  border-radius: 50px; font-size: .78rem; font-weight: 600;
+  margin-bottom: 2.5rem; opacity: 0; letter-spacing: .5px;
+}
+
+.ldot {
+  width: 6px; height: 6px; background: var(--neon); border-radius: 50%;
+  box-shadow: 0 0 8px var(--neon); animation: ldot 1.5s infinite;
+}
+@keyframes ldot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.3;transform:scale(.5);} }
+
+/* ── 3D COIN ── */
+.coin-scene {
+  width: 320px; height: 320px;
+  margin: 0 auto 2.5rem;
+  position: relative; perspective: 1200px;
+  opacity: 0;
+}
+
+.coin-wrap {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: coinOrbit 6s ease-in-out infinite;
+}
+
+@keyframes coinOrbit {
+  0%   { transform: translateY(0px) rotateX(8deg) rotateY(-8deg); }
+  25%  { transform: translateY(-20px) rotateX(5deg) rotateY(5deg); }
+  50%  { transform: translateY(-30px) rotateX(-5deg) rotateY(12deg); }
+  75%  { transform: translateY(-15px) rotateX(3deg) rotateY(-5deg); }
+  100% { transform: translateY(0px) rotateX(8deg) rotateY(-8deg); }
+}
+
+.coin-svg {
+  width: 260px; height: 260px;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  filter:
+    drop-shadow(0 30px 80px rgba(247,147,26,.7))
+    drop-shadow(0 0 40px rgba(247,147,26,.3))
+    drop-shadow(0 -5px 20px rgba(255,200,80,.2));
+}
+
+.coin-glow-ring {
+  position: absolute; top:50%;left:50%;
+  width: 280px; height: 280px;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(247,147,26,.18) 0%, transparent 70%);
+  animation: ringPulse 3s ease-in-out infinite;
+}
+@keyframes ringPulse { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.6;} 50%{transform:translate(-50%,-50%) scale(1.2);opacity:1;} }
+
+/* Floating chips */
+.chip {
+  position: absolute;
+  background: rgba(6,11,18,.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: .55rem 1rem;
+  font-size: .78rem; white-space: nowrap;
+  transition: all .3s;
+}
+
+.chip-1 {
+  top: 8%; right: 0%;
+  border-color: rgba(0,255,204,.25);
+  color: var(--neon); font-weight: 700;
+  animation: chip1 3.5s ease-in-out infinite;
+}
+.chip-2 {
+  bottom: 15%; left: -5%;
+  animation: chip2 4s ease-in-out infinite .5s;
+}
+.chip-2 .c2-sym { color: var(--text2); font-size: .7rem; }
+.chip-2 .c2-price { font-weight: 800; font-size: .92rem; color: var(--text); }
+.chip-3 {
+  top: 38%; right: -8%;
+  border-color: rgba(247,147,26,.25);
+  color: var(--gold); font-weight: 700; font-size: .75rem;
+  animation: chip1 4.5s ease-in-out infinite 1s;
+}
+.chip-4 {
+  bottom: 5%; right: 5%;
+  border-color: rgba(0,255,204,.1);
+  font-size: .72rem; color: var(--text2);
+  animation: chip2 5s ease-in-out infinite .8s;
+}
+
+@keyframes chip1 { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+@keyframes chip2 { 0%,100%{transform:translateY(0);} 50%{transform:translateY(10px);} }
+
+/* ── HEADLINE ── */
+.hero-headline {
+  font-size: clamp(2.5rem, 5.5vw, 5.2rem);
+  font-weight: 900; line-height: 1.05;
+  letter-spacing: -2px; margin-bottom: 1.4rem;
+  overflow: hidden;
+}
+
+.hl-row { display: block; overflow: hidden; }
+.hl-inner { display: block; transform: translateY(100%); }
+
+.hl-1 .hl-inner { color: var(--text); }
+.hl-2 .hl-inner {
+  background: linear-gradient(110deg, var(--gold) 0%, var(--gold2) 35%, var(--neon) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hl-3 .hl-inner {
+  color: rgba(255,255,255,.22); font-weight: 200;
+  font-size: .42em; letter-spacing: 0; margin-top: .5rem;
+}
+
+/* ── SUBTEXT ── */
+.hero-sub {
+  font-size: 1rem; color: var(--text3); line-height: 1.9;
+  max-width: 520px; margin: 0 auto 2.8rem;
+  font-weight: 300; opacity: 0;
+}
+
+/* ── BUTTONS ── */
+.hero-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; opacity:0; margin-bottom:4rem; }
+
+.btn-main {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #000; padding: 1rem 2.4rem;
+  border-radius: 14px; font-size: .98rem; font-weight: 800;
+  text-decoration: none; border: none; cursor: pointer;
+  font-family: 'Vazirmatn', sans-serif;
+  box-shadow: 0 0 30px rgba(247,147,26,.4), 0 10px 40px rgba(0,0,0,.5);
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  position: relative; overflow: hidden;
+}
+.btn-main::after {
+  content: ''; position: absolute;
+  inset: 0; background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,.25));
+  opacity: 0; transition: opacity .3s;
+}
+.btn-main:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 0 55px rgba(247,147,26,.6), 0 20px 60px rgba(0,0,0,.6); }
+.btn-main:hover::after { opacity: 1; }
+
+.btn-sec {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--text3); padding: 1rem 2.4rem;
+  border-radius: 14px; font-size: .98rem; font-weight: 500;
+  text-decoration: none;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  font-family: 'Vazirmatn', sans-serif;
+}
+.btn-sec:hover { background: rgba(0,255,204,.06); border-color: rgba(0,255,204,.3); color: var(--neon); transform: translateY(-5px); }
+
+/* ── STATS ── */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: .8rem; max-width: 680px; margin: 0 auto;
+  opacity: 0;
+}
+
+.hs {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.1rem .8rem; text-align: center;
+  position: relative; overflow: hidden;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+}
+.hs::before {
+  content:''; position:absolute; top:0;left:0;right:0;height:1px;
+  background: linear-gradient(90deg,transparent,rgba(0,255,204,.3),transparent);
+}
+.hs:hover { border-color: rgba(0,255,204,.2); transform: translateY(-4px) scale(1.02); box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+
+.hs-n {
+  font-size: 1.7rem; font-weight: 900; letter-spacing: -1px;
+  background: linear-gradient(135deg, var(--gold), var(--neon));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  display: block;
+}
+.hs-l { font-size: .7rem; color: var(--text2); margin-top: .15rem; font-weight: 300; }
+
+/* ═══ TICKER ═══ */
+.ticker {
+  position: relative; z-index: 5;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: rgba(6,11,18,.9); backdrop-filter: blur(20px);
+  padding: .7rem 0; overflow: hidden;
+}
+
+.ticker-gradient-l {
+  position: absolute; top:0;left:0;bottom:0;width:120px;
+  background: linear-gradient(90deg, rgba(6,11,18,1), transparent);
+  z-index: 2; pointer-events: none;
+}
+.ticker-gradient-r {
+  position: absolute; top:0;right:0;bottom:0;width:120px;
+  background: linear-gradient(-90deg, rgba(6,11,18,1), transparent);
+  z-index: 2; pointer-events: none;
+}
+
+.ticker-track {
+  display: flex; gap: 3rem;
+  animation: tickerRun 28s linear infinite;
+  white-space: nowrap;
+}
+
+@keyframes tickerRun { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+
+.ti {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .78rem; color: var(--text2);
+}
+.ti b { color: var(--text); font-weight: 700; }
+.ti .up { color: #00ffaa; font-weight: 600; }
+.ti .dn { color: var(--red); font-weight: 600; }
+.ti-sep { color: rgba(255,255,255,.1); }
+
+/* ═══ SECTION COMMON ═══ */
+.s-wrap { max-width:1080px; margin:0 auto; padding:8rem 2rem; position:relative;z-index:2; }
+
+.s-eyebrow {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: rgba(0,255,204,.05); border: 1px solid rgba(0,255,204,.15);
+  color: var(--neon); padding: .28rem .9rem; border-radius: 50px;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.s-title {
+  font-size: clamp(2rem, 3.5vw, 3.2rem);
+  font-weight: 900; line-height: 1.1; letter-spacing: -1px;
+}
+.s-title .acc {
+  background: linear-gradient(110deg, var(--gold), var(--neon));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.s-desc { color: var(--text2); font-size: .9rem; line-height: 1.9; font-weight: 300; max-width:480px; }
+
+/* ═══ FEATURE CARDS ═══ */
+.feat-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 1rem; margin-top: 3.5rem;
+}
+
+.fc {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 24px; padding: 2rem 1.6rem;
+  position: relative; overflow: hidden;
+  transition: all .5s cubic-bezier(.4,0,.2,1);
+  cursor: default;
+}
+
+.fc-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at top left, rgba(0,255,204,.06) 0%, transparent 60%);
+  opacity: 0; transition: opacity .5s;
+}
+
+.fc:hover { border-color: rgba(0,255,204,.22); transform: translateY(-10px) scale(1.01); box-shadow: 0 40px 100px rgba(0,0,0,.7); }
+.fc:hover .fc-bg { opacity: 1; }
+.fc:hover .fc-icon { box-shadow: 0 0 25px rgba(0,255,204,.2); background: rgba(0,255,204,.12); }
+
+.fc-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: rgba(0,255,204,.06); border: 1px solid rgba(0,255,204,.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin-bottom: 1.3rem;
+  transition: all .4s;
+}
+.fc-t { font-size: .95rem; font-weight: 700; margin-bottom: .5rem; }
+.fc-d { color: var(--text2); font-size: .83rem; line-height: 1.75; font-weight: 300; }
+
+/* ═══ SIGNAL SHOWCASE ═══ */
+.sig-section-bg {
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.sig-layout {
+  display: grid; grid-template-columns: 1fr 1.1fr;
+  gap: 5rem; align-items: center;
+}
+
+/* Glassmorphism signal card */
+.sig-glass {
+  background: rgba(6,11,18,.7);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(0,255,204,.12);
+  border-radius: 28px; padding: 2.2rem;
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 100px rgba(0,0,0,.6), 0 0 1px rgba(0,255,204,.1) inset;
+  transition: all .5s;
+}
+.sig-glass:hover { border-color: rgba(0,255,204,.22); box-shadow: 0 0 120px rgba(0,0,0,.7), 0 0 60px rgba(0,255,204,.05) inset; }
+
+.sig-glass::before {
+  content: '';
+  position: absolute; top:0;left:0;right:0;height:1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,204,.6), transparent);
+}
+
+.sig-glass::after {
+  content: '';
+  position: absolute; inset:0;
+  background: radial-gradient(ellipse at 30% 0%, rgba(0,255,204,.04) 0%, transparent 60%);
+}
+
+.sg-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.6rem; padding-bottom: 1.3rem;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  position: relative; z-index: 1;
+}
+
+.sg-sym { font-size: 1.15rem; font-weight: 900; letter-spacing: -.5px; }
+.sg-sym small { color: var(--text2); font-size: .7rem; font-weight: 400; display: block; margin-bottom: .1rem; }
+
+.badge-long {
+  background: rgba(0,255,204,.08); color: var(--neon);
+  border: 1px solid rgba(0,255,204,.25);
+  padding: .3rem 1rem; border-radius: 8px;
+  font-size: .78rem; font-weight: 700;
+}
+
+.sg-rows { position: relative; z-index:1; display:flex; flex-direction:column; gap:.05rem; }
+
+.sg-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .6rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.035);
+  font-size: .88rem;
+}
+.sg-row:last-child { border:none; }
+.sg-lbl { color: var(--text2); font-weight: 300; }
+.sg-val { font-weight: 700; }
+.sg-val.g { color: #00ffaa; }
+.sg-val.r { color: var(--red); }
+.sg-val.o { color: var(--gold); }
+
+.score-bar { display:flex; gap:3px; margin-top:1.3rem; position:relative; z-index:1; }
+.score-s { height:4px; flex:1; border-radius:2px; background:rgba(255,255,255,.07); }
+.score-s.on { background: linear-gradient(90deg, var(--neon), rgba(0,200,255,.7)); box-shadow:0 0 6px rgba(0,255,204,.4); }
+
+/* ── CHECKLIST ── */
+.chk-list { display:flex; flex-direction:column; gap:.6rem; margin-top:2rem; }
+.chk {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .75rem 1rem;
+  background: var(--glass); border: 1px solid var(--border);
+  border-radius: 12px; font-size: .83rem;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+}
+.chk:hover { border-color: rgba(0,255,204,.2); background: rgba(0,255,204,.03); transform: translateX(-4px); }
+.chk-ic { flex-shrink:0; font-size:.85rem; margin-top:.1rem; }
+.chk-t strong { display:block; font-size:.83rem; margin-bottom:.15rem; }
+.chk-t span { color:var(--text2); font-size:.75rem; font-weight:300; }
+
+/* ═══ WIN RATE ═══ */
+.wr-section-bg {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+
+.wr-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1rem; margin-top: 3.5rem;
+}
+
+.wr-card {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 22px; padding: 2rem 1.5rem;
+  text-align: center; position:relative; overflow:hidden;
+  transition: all .5s cubic-bezier(.4,0,.2,1);
+}
+.wr-card::before {
+  content:''; position:absolute; bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,255,204,.4),transparent); opacity:.5;
+}
+.wr-card:hover { border-color:rgba(0,255,204,.2); transform:translateY(-8px) scale(1.02); box-shadow:0 30px 80px rgba(0,0,0,.6); }
+
+.wr-n {
+  font-size: 2.8rem; font-weight:900; letter-spacing:-2px;
+  background: linear-gradient(135deg, var(--gold), var(--neon));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  display:block;
+}
+.wr-l { font-size:.78rem; color:var(--text2); margin-top:.4rem; font-weight:300; }
+
+/* ═══ PRICING ═══ */
+.price-section-bg {
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+  border-top: 1px solid var(--border);
+}
+
+.trial-pill {
+  display: inline-flex; align-items: center; gap: .6rem;
+  background: linear-gradient(135deg, rgba(0,255,204,.08), rgba(247,147,26,.08));
+  border: 1px solid rgba(0,255,204,.15);
+  border-radius: 14px; padding: 1rem 2rem;
+  font-size: .88rem; margin-bottom: 3rem;
+  max-width: 500px;
+}
+.trial-pill strong { color: var(--neon); }
+
+.price-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 1.2rem;
+}
+
+.pc {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 28px; padding: 2.4rem 2rem;
+  position: relative; text-align: center;
+  transition: all .5s cubic-bezier(.4,0,.2,1);
+}
+.pc:hover { transform: translateY(-12px); box-shadow: 0 50px 120px rgba(0,0,0,.8); }
+
+.pc.featured {
+  border-color: rgba(0,255,204,.22);
+  background: linear-gradient(180deg, rgba(0,255,204,.06) 0%, var(--bg3) 55%);
+  box-shadow: 0 0 80px rgba(0,255,204,.07);
+}
+.pc.featured:hover { box-shadow: 0 50px 120px rgba(0,0,0,.8), 0 0 100px rgba(0,255,204,.1); }
+
+.pc-hot {
+  position: absolute; top:-13px; left:50%; transform:translateX(-50%);
+  background: linear-gradient(135deg, var(--neon), var(--neon2));
+  color: #000; padding: .3rem 1.4rem; border-radius:50px;
+  font-size: .7rem; font-weight:800; letter-spacing:.5px; white-space:nowrap;
+}
+
+.pc-name { font-size:.78rem; font-weight:600; color:var(--text2); letter-spacing:2px; text-transform:uppercase; margin-bottom:.6rem; }
+.pc-price {
+  font-size: 3.2rem; font-weight:900; letter-spacing:-2px; line-height:1; color:var(--gold);
+}
+.pc-price sup { font-size:1.1rem; vertical-align:top; margin-top:.7rem; display:inline-block; }
+.pc-price sub { font-size:.8rem; font-weight:400; color:var(--text2); letter-spacing:0; }
+.pc-toman { font-size:.75rem; color:var(--text2); margin:.4rem 0 1.5rem; font-weight:300; }
+
+.pc-div { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); margin-bottom:1.6rem; }
+
+.pc-feats { list-style:none; text-align:right; margin-bottom:2rem; display:flex; flex-direction:column; gap:.55rem; }
+.pc-feats li { display:flex; align-items:center; gap:.6rem; font-size:.83rem; color:var(--text3); font-weight:300; }
+.pc-feats li .ck { color:#00ffaa; font-weight:700; flex-shrink:0; }
+.pc-feats li .xx { color:rgba(255,255,255,.15); flex-shrink:0; }
+.pc-feats li.off { color:rgba(255,255,255,.18); }
+
+.pc-btn {
+  width:100%; padding:.95rem; border-radius:14px;
+  font-size:.88rem; font-weight:700; cursor:pointer; border:none;
+  font-family:'Vazirmatn',sans-serif; transition:all .4s cubic-bezier(.4,0,.2,1);
+  letter-spacing:.3px;
+}
+.pc-btn-neon {
+  background: linear-gradient(135deg, var(--neon), var(--neon2));
+  color: #000; box-shadow:0 0 25px rgba(0,255,204,.3);
+}
+.pc-btn-neon:hover { box-shadow:0 0 45px rgba(0,255,204,.5); transform:translateY(-3px); }
+.pc-btn-ghost {
+  background:transparent; border:1px solid rgba(255,255,255,.1); color:var(--text3);
+}
+.pc-btn-ghost:hover { border-color:var(--neon); color:var(--neon); background:rgba(0,255,204,.04); transform:translateY(-3px); }
+
+/* ═══ CTA ═══ */
+.cta-box {
+  background: linear-gradient(135deg, rgba(247,147,26,.07), rgba(0,255,204,.07));
+  border: 1px solid rgba(0,255,204,.13);
+  border-radius: 36px; padding: 6rem 3rem;
+  text-align: center; position:relative; overflow:hidden;
+}
+.cta-box::before {
+  content:''; position:absolute; width:600px;height:600px;
+  background:radial-gradient(circle,rgba(0,255,204,.06) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:ctaGlow 5s ease-in-out infinite;
+}
+@keyframes ctaGlow { 0%,100%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.2);} }
+
+.cta-title { font-size:3rem; font-weight:900; letter-spacing:-2px; margin-bottom:1rem; position:relative; }
+.cta-desc { color:var(--text2); font-size:1rem; margin-bottom:2.8rem; position:relative; font-weight:300; }
+
+/* ═══ FOOTER ═══ */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 4rem 2rem 2rem;
+  position:relative;z-index:2;
+}
+
+.footer-inner {
+  max-width:1080px; margin:0 auto;
+  display:grid; grid-template-columns:2.5fr 1fr 1fr 1fr; gap:3rem;
+}
+
+.f-brand-name { font-size:1.5rem; font-weight:900; letter-spacing:-1px; margin-bottom:.6rem; }
+.f-brand-name em { color:var(--neon); font-style:normal; }
+.f-brand-desc { color:var(--text2); font-size:.83rem; line-height:1.8; font-weight:300; }
+
+.f-col h4 { font-size:.72rem; font-weight:700; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:1.2rem; }
+.f-col ul { list-style:none; display:flex; flex-direction:column; gap:.6rem; }
+.f-col a { color:var(--text2); text-decoration:none; font-size:.83rem; font-weight:300; transition:color .3s; }
+.f-col a:hover { color:var(--neon); }
+
+.footer-bottom {
+  max-width:1080px; margin:3rem auto 0;
+  padding-top:1.5rem; border-top:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:.75rem; color:rgba(255,255,255,.12); font-weight:300;
+}
+
+/* ═══ REVEAL BASE ═══ */
+.rv { opacity:0; }
+
+/* ═══ MOBILE ═══ */
+@media(max-width:900px){
+  nav{width:calc(100% - 2rem);padding:.8rem 1.2rem;}
+  .nav-links{display:none;}
+  .hero-stats{grid-template-columns:repeat(2,1fr);}
+  .feat-grid{grid-template-columns:1fr 1fr;}
+  .sig-layout{grid-template-columns:1fr;gap:2.5rem;}
+  .wr-grid{grid-template-columns:repeat(2,1fr);}
+  .price-grid{grid-template-columns:1fr;}
+  .footer-inner{grid-template-columns:1fr 1fr;}
+  .coin-scene{width:260px;height:260px;}
+  .cta-title{font-size:2rem;}
+}
+@media(max-width:580px){
+  .feat-grid{grid-template-columns:1fr;}
+  .hero-stats{grid-template-columns:repeat(2,1fr);}
+  .footer-inner{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cursor" id="cur"></div>
+<div class="cursor-follower" id="curF"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">
+    <span class="l-z">Z</span><span class="l-rest">andiBot</span>
+  </div>
+  <div class="loader-bar-wrap">
+    <div class="loader-bar" id="loaderBar"></div>
+  </div>
+  <div class="loader-pct" id="loaderPct">0%</div>
+</div>
+
+<!-- STARFIELD -->
+<canvas id="universe"></canvas>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-orb">Z</div>
+    <div class="nav-brand">Zandi<em>Bot</em></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">امکانات</a></li>
+    <li><a href="#signals">سیگنال‌ها</a></li>
+    <li><a href="#pricing">اشتراک</a></li>
+  </ul>
+  <div class="nav-cta-group">
+    <a href="/login" class="btn-outline-nav">ورود</a>
+    <a href="/register" class="btn-fill-nav">۲ روز رایگان ←</a>
+  </div>
+</nav>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero" id="home">
+  <div class="hero-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="hero-inner">
+
+    <div class="hero-badge rv" id="hBadge">
+      <div class="ldot"></div>
+      <span>سیستم فعال — اسکن ۲۴/۷ بازار کریپتو</span>
+    </div>
+
+    <!-- 3D BITCOIN -->
+    <div class="coin-scene rv" id="coinScene">
+      <div class="coin-glow-ring"></div>
+      <div class="coin-wrap">
+        <svg class="coin-svg" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="cg" cx="38%" cy="30%" r="68%">
+              <stop offset="0%"  stop-color="#FFF0A0"/>
+              <stop offset="20%" stop-color="#FFD700"/>
+              <stop offset="55%" stop-color="#F7931A"/>
+              <stop offset="100%" stop-color="#7A4400"/>
+            </radialGradient>
+            <radialGradient id="cgedge" cx="50%" cy="50%">
+              <stop offset="0%" stop-color="#B86800"/>
+              <stop offset="100%" stop-color="#4A2800"/>
+            </radialGradient>
+            <filter id="cshadow">
+              <feDropShadow dx="0" dy="25" stdDeviation="25" flood-color="#000" flood-opacity=".85"/>
+              <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="rgba(247,147,26,.6)" flood-opacity="1"/>
+            </filter>
+            <radialGradient id="gloss" cx="35%" cy="28%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+              <stop offset="60%" stop-color="rgba(255,255,255,0.08)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </radialGradient>
+          </defs>
+          <!-- Drop shadow ellipse -->
+          <ellipse cx="140" cy="262" rx="90" ry="12" fill="rgba(0,0,0,.55)"/>
+          <!-- Edge thickness -->
+          <ellipse cx="140" cy="128" rx="112" ry="22" fill="url(#cgedge)"/>
+          <rect x="28" y="106" width="224" height="22" fill="url(#cgedge)"/>
+          <!-- Main face -->
+          <circle cx="140" cy="106" r="112" fill="url(#cg)" filter="url(#cshadow)"/>
+          <!-- Inner rings -->
+          <circle cx="140" cy="106" r="98"  fill="none" stroke="rgba(255,220,80,.2)"  stroke-width="1.5"/>
+          <circle cx="140" cy="106" r="90"  fill="none" stroke="rgba(255,220,80,.12)" stroke-width="1"/>
+          <!-- Shadow B -->
+          <text x="143" y="146" text-anchor="middle" font-size="110" font-weight="900"
+                font-family="Arial Black,sans-serif" fill="rgba(0,0,0,.3)">₿</text>
+          <!-- Main B -->
+          <text x="140" y="143" text-anchor="middle" font-size="110" font-weight="900"
+                font-family="Arial Black,sans-serif"
+                fill="rgba(255,255,255,.92)"
+                style="paint-order:stroke fill;stroke:rgba(120,60,0,.3);stroke-width:2px">₿</text>
+          <!-- Gloss -->
+          <circle cx="140" cy="106" r="112" fill="url(#gloss)"/>
+          <ellipse cx="108" cy="65" rx="32" ry="18" fill="rgba(255,255,255,.18)" transform="rotate(-25,108,65)"/>
+        </svg>
+      </div>
+
+      <div class="chip chip-1">▲ +۴.۲٪ امروز</div>
+      <div class="chip chip-2">
+        <div class="c2-sym">Bitcoin</div>
+        <div class="c2-price" id="heroPrice">$105,420</div>
+      </div>
+      <div class="chip chip-3">🎯 LONG سیگنال</div>
+      <div class="chip chip-4">اسکن هر ۱۵ دقیقه</div>
+    </div>
+
+    <!-- HEADLINE -->
+    <h1 class="hero-headline">
+      <span class="hl-row hl-1"><span class="hl-inner" id="hl1">دستیار هوشمند</span></span>
+      <span class="hl-row hl-2"><span class="hl-inner" id="hl2">سیگنال‌دهی کریپتو</span></span>
+      <span class="hl-row hl-3"><span class="hl-inner" id="hl3">تحلیل دقیق · سیگنال به‌موقع · وین‌ریت قابل اندازه‌گیری</span></span>
+    </h1>
+
+    <p class="hero-sub rv" id="heroSub">
+      ZandiBot با تحلیل چندلایه بازار، بهترین لحظه ورود را شناسایی
+      و سیگنال کامل را مستقیم در تلگرام شما ارسال می‌کند.
+    </p>
+
+    <div class="hero-btns rv" id="heroBtns">
+      <a href="/register" class="btn-main">شروع ۲ روز تست رایگان ←</a>
+      <a href="#signals" class="btn-sec">مشاهده نمونه سیگنال</a>
+    </div>
+
+    <div class="hero-stats rv" id="heroStats">
+      <div class="hs"><span class="hs-n">۷۲%</span><div class="hs-l">وین‌ریت TP1</div></div>
+      <div class="hs"><span class="hs-n">2.5R</span><div class="hs-l">میانگین R/R</div></div>
+      <div class="hs"><span class="hs-n">11</span><div class="hs-l">شرط تأیید</div></div>
+      <div class="hs"><span class="hs-n">24/7</span><div class="hs-l">اسکن بازار</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ TICKER ══════════════ -->
+<div class="ticker">
+  <div class="ticker-gradient-l"></div>
+  <div class="ticker-gradient-r"></div>
+  <div class="ticker-track" id="tickerTrack">
+    <div class="ti">₿ <b>BTC</b> <span id="t-btc">$105,420</span> <span class="up">▲ +4.2%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">Ξ <b>ETH</b> <span id="t-eth">$3,852</span> <span class="up">▲ +2.8%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">◎ <b>SOL</b> <span id="t-sol">$185.4</span> <span class="up">▲ +6.1%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">⬡ <b>BNB</b> <span id="t-bnb">$642</span> <span class="dn">▼ -1.2%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">✕ <b>XRP</b> <span id="t-xrp">$0.842</span> <span class="up">▲ +3.4%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">🎯 <b>SIGNAL</b> BTCUSDT LONG 9/11 🔥 HIGH</div>
+    <div class="ti-sep">|</div>
+    <div class="ti">⚡ <b>SIGNAL</b> SOLUSDT LONG 7/11 ⚡ MEDIUM</div>
+    <div class="ti-sep">|</div>
+    <!-- duplicate for seamless loop -->
+    <div class="ti">₿ <b>BTC</b> <span>$105,420</span> <span class="up">▲ +4.2%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">Ξ <b>ETH</b> <span>$3,852</span> <span class="up">▲ +2.8%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">◎ <b>SOL</b> <span>$185.4</span> <span class="up">▲ +6.1%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">⬡ <b>BNB</b> <span>$642</span> <span class="dn">▼ -1.2%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">✕ <b>XRP</b> <span>$0.842</span> <span class="up">▲ +3.4%</span></div>
+    <div class="ti-sep">|</div>
+    <div class="ti">🎯 <b>SIGNAL</b> BTCUSDT LONG 9/11 🔥 HIGH</div>
+    <div class="ti-sep">|</div>
+    <div class="ti">⚡ <b>SIGNAL</b> SOLUSDT LONG 7/11 ⚡ MEDIUM</div>
+  </div>
+</div>
+
+<!-- ══════════════ FEATURES ══════════════ -->
+<div id="features">
+  <div class="s-wrap">
+    <div class="rv" style="text-align:center;">
+      <div class="s-eyebrow">✦ امکانات</div>
+      <h2 class="s-title" style="margin-bottom:.8rem;">همه چیز در <span class="acc">یک سیستم</span></h2>
+      <p class="s-desc" style="margin:0 auto;text-align:center;">از تحلیل بازار تا ارسال سیگنال، همه فرآیندها خودکار است</p>
+    </div>
+    <div class="feat-grid">
+      <div class="fc rv"><div class="fc-bg"></div><div class="fc-icon">📊</div><div class="fc-t">تحلیل ۴ تایم‌فریم</div><p class="fc-d">بررسی همزمان 4H، 1H، 15m و 5m برای یافتن دقیق‌ترین نقطه ورود به بازار</p></div>
+      <div class="fc rv"><div class="fc-bg"></div><div class="fc-icon">🎯</div><div class="fc-t">۱۱ شرط تأیید</div><p class="fc-d">EMA، VWAP، Order Block، FVG، BOS، RSI و Volume همگی تأیید می‌شوند</p></div>
+      <div class="fc rv"><div class="fc-bg"></div><div class="fc-icon">📱</div><div class="fc-t">تلگرام + پیامک</div><p class="fc-d">دریافت سیگنال فوری در تلگرام و اطلاع‌رسانی پیامکی از طریق کاوه‌نگار</p></div>
+      <div class="fc rv"><div class="fc-bg"></div><div class="fc-icon">📈</div><div class="fc-t">بک‌تست استراتژی</div><p class="fc-d">آزمون استراتژی روی داده‌های تاریخی و مشاهده نتایج واقعی قبل از ترید</p></div>
+      <div class="fc rv"><div class="fc-bg"></div><div class="fc-icon">🏆</div><div class="fc-t">ردیابی وین‌ریت</div><p class="fc-d">TP1، TP2، TP3 و SL جداگانه ردیابی و آمار دقیق برای هر ارز نمایش داده می‌شود</p></div>
+      <div class="fc rv"><div class="fc-bg"></div><div class="fc-icon">⚙️</div><div class="fc-t">انتخاب ارز</div><p class="fc-d">تیک فعال‌سازی برای هر ارز — سیستم فقط روی ارزهای انتخاب‌شده شما کار می‌کند</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SIGNAL ══════════════ -->
+<div class="sig-section-bg" id="signals">
+  <div class="s-wrap">
+    <div class="sig-layout">
+      <div class="rv">
+        <div class="s-eyebrow">✦ نمونه سیگنال</div>
+        <h2 class="s-title" style="margin-bottom:1rem;">سیگنال <span class="acc">واضح و کامل</span></h2>
+        <p class="s-desc" style="margin-bottom:.5rem;">هر سیگنال شامل تمام اطلاعات لازم برای ورود، مدیریت ریسک و خروج است.</p>
+        <div class="chk-list">
+          <div class="chk"><span class="chk-ic">✅</span><div class="chk-t"><strong>روند 4H صعودی + بالای EMA200</strong><span>جهت کلی بازار تأیید شد</span></div></div>
+          <div class="chk"><span class="chk-ic">✅</span><div class="chk-t"><strong>قیمت بالای VWAP در 1H</strong><span>تمایل صعودی کوتاه‌مدت</span></div></div>
+          <div class="chk"><span class="chk-ic">✅</span><div class="chk-t"><strong>واکنش از Order Block صعودی</strong><span>ناحیه تقاضای معتبر فعال</span></div></div>
+          <div class="chk"><span class="chk-ic">✅</span><div class="chk-t"><strong>BOS صعودی در 5m تأیید شد</strong><span>شکست ساختار با حجم قوی</span></div></div>
+          <div class="chk"><span class="chk-ic">✅</span><div class="chk-t"><strong>حجم ۱.۸x بالای میانگین</strong><span>تأیید قدرت و مومنتوم حرکت</span></div></div>
+        </div>
+      </div>
+
+      <div class="sig-glass rv">
+        <div class="sg-head">
+          <div>
+            <div class="sg-sym">
+              <small>FUTURES · BINANCE</small>
+              🪙 BTCUSDT
+            </div>
+          </div>
+          <span class="badge-long">🟢 LONG</span>
+        </div>
+        <div class="sg-rows">
+          <div class="sg-row"><span class="sg-lbl">💰 قیمت ورود</span><span class="sg-val">105,250</span></div>
+          <div class="sg-row"><span class="sg-lbl">🔴 استاپ لاس</span><span class="sg-val r">104,100</span></div>
+          <div class="sg-row"><span class="sg-lbl">🟡 TP1 (+۱.۵R)</span><span class="sg-val g">106,980</span></div>
+          <div class="sg-row"><span class="sg-lbl">🟠 TP2 (+۲.۵R)</span><span class="sg-val g">108,120</span></div>
+          <div class="sg-row"><span class="sg-lbl">🟢 TP3 (+۴R)</span><span class="sg-val g">110,500</span></div>
+          <div class="sg-row"><span class="sg-lbl">📊 R/R نسبت</span><span class="sg-val o">2.5R 🔥 HIGH</span></div>
+        </div>
+        <div style="margin-top:1.2rem;font-size:.73rem;color:var(--text2);position:relative;z-index:1;">
+          امتیاز چک‌لیست: ۹ از ۱۱ شرط
+        </div>
+        <div class="score-bar">
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s on"></div>
+          <div class="score-s on"></div><div class="score-s"></div>
+          <div class="score-s"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ WIN RATE ══════════════ -->
+<div class="wr-section-bg">
+  <div class="s-wrap" style="text-align:center;">
+    <div class="rv">
+      <div class="s-eyebrow">✦ عملکرد</div>
+      <h2 class="s-title" style="margin-bottom:.8rem;">نتایج <span class="acc">واقعی و شفاف</span></h2>
+      <p class="s-desc" style="margin:0 auto;">آمار بر اساس سیگنال‌های ردیابی‌شده در سیستم — بدون دستکاری</p>
+    </div>
+    <div class="wr-grid">
+      <div class="wr-card rv"><span class="wr-n" id="wr1">۰%</span><div class="wr-l">وین‌ریت TP1</div></div>
+      <div class="wr-card rv"><span class="wr-n" id="wr2">۰%</span><div class="wr-l">وین‌ریت TP2</div></div>
+      <div class="wr-card rv"><span class="wr-n" id="wr3">۰R</span><div class="wr-l">میانگین R/R</div></div>
+      <div class="wr-card rv"><span class="wr-n" id="wr4">۰</span><div class="wr-l">سیگنال صادر شده</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PRICING ══════════════ -->
+<div class="price-section-bg" id="pricing">
+  <div class="s-wrap">
+    <div class="rv" style="text-align:center; margin-bottom:2.5rem;">
+      <div class="s-eyebrow">✦ اشتراک</div>
+      <h2 class="s-title" style="margin-bottom:.8rem;">پلن مناسب <span class="acc">خود را انتخاب کنید</span></h2>
+    </div>
+
+    <div class="trial-pill rv" style="margin-right:auto;margin-left:auto;display:flex;">
+      🎁 <strong>۲ روز تست کاملاً رایگان</strong> برای همه پلن‌ها — بدون کارت بانکی — لغو هر زمان
+    </div>
+
+    <div class="price-grid">
+      <div class="pc rv">
+        <div class="pc-name">پایه</div>
+        <div class="pc-price"><sup>$</sup>29<sub>/ماه</sub></div>
+        <div class="pc-toman">۱,۴۵۰,۰۰۰ تومان</div>
+        <div class="pc-div"></div>
+        <ul class="pc-feats">
+          <li><span class="ck">✓</span> ۵ ارز دیجیتال</li>
+          <li><span class="ck">✓</span> سیگنال تلگرام</li>
+          <li><span class="ck">✓</span> ردیابی وین‌ریت</li>
+          <li><span class="ck">✓</span> TP1, TP2, TP3 + SL</li>
+          <li class="off"><span class="xx">✕</span> بک‌تست استراتژی</li>
+          <li class="off"><span class="xx">✕</span> پیامک SMS</li>
+        </ul>
+        <button class="pc-btn pc-btn-ghost" onclick="location.href='/register'">شروع ۲ روز رایگان</button>
+      </div>
+
+      <div class="pc featured rv">
+        <div class="pc-hot">⚡ پرطرفدار</div>
+        <div class="pc-name">حرفه‌ای</div>
+        <div class="pc-price"><sup>$</sup>59<sub>/ماه</sub></div>
+        <div class="pc-toman">۲,۹۵۰,۰۰۰ تومان</div>
+        <div class="pc-div"></div>
+        <ul class="pc-feats">
+          <li><span class="ck">✓</span> ۱۵ ارز دیجیتال</li>
+          <li><span class="ck">✓</span> سیگنال تلگرام</li>
+          <li><span class="ck">✓</span> ردیابی وین‌ریت</li>
+          <li><span class="ck">✓</span> بک‌تست کامل استراتژی</li>
+          <li><span class="ck">✓</span> پیامک کاوه‌نگار</li>
+          <li class="off"><span class="xx">✕</span> سیگنال VIP اختصاصی</li>
+        </ul>
+        <button class="pc-btn pc-btn-neon" onclick="location.href='/register'">شروع ۲ روز رایگان</button>
+      </div>
+
+      <div class="pc rv">
+        <div class="pc-name">VIP</div>
+        <div class="pc-price"><sup>$</sup>99<sub>/ماه</sub></div>
+        <div class="pc-toman">۴,۹۵۰,۰۰۰ تومان</div>
+        <div class="pc-div"></div>
+        <ul class="pc-feats">
+          <li><span class="ck">✓</span> نامحدود ارز دیجیتال</li>
+          <li><span class="ck">✓</span> سیگنال تلگرام</li>
+          <li><span class="ck">✓</span> ردیابی وین‌ریت</li>
+          <li><span class="ck">✓</span> بک‌تست کامل استراتژی</li>
+          <li><span class="ck">✓</span> پیامک کاوه‌نگار</li>
+          <li><span class="ck">✓</span> سیگنال VIP اختصاصی</li>
+        </ul>
+        <button class="pc-btn pc-btn-ghost" onclick="location.href='/register'">شروع ۲ روز رایگان</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CTA ══════════════ -->
+<div style="position:relative;z-index:2;padding:4rem 2rem;">
+  <div style="max-width:1080px;margin:0 auto;">
+    <div class="cta-box rv">
+      <h2 class="cta-title">همین الان شروع کنید ⚡</h2>
+      <p class="cta-desc">۲ روز تست رایگان — بدون پرداخت — لغو هر زمان</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;position:relative;">
+        <a href="/register" class="btn-main">ثبت‌نام و شروع ←</a>
+        <a href="https://t.me/zandibot" class="btn-sec">کانال تلگرام</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="f-brand-name">Zandi<em>Bot</em></div>
+      <p class="f-brand-desc">دستیار هوشمند سیگنال‌دهی کریپتو<br>تحلیل دقیق بازار، سیگنال به‌موقع، وین‌ریت شفاف</p>
+    </div>
+    <div class="f-col">
+      <h4>سیستم</h4>
+      <ul>
+        <li><a href="#features">امکانات</a></li>
+        <li><a href="#signals">سیگنال‌ها</a></li>
+        <li><a href="#pricing">اشتراک</a></li>
+      </ul>
+    </div>
+    <div class="f-col">
+      <h4>حساب</h4>
+      <ul>
+        <li><a href="/login">ورود</a></li>
+        <li><a href="/register">ثبت‌نام</a></li>
+        <li><a href="/dashboard">پنل کاربری</a></li>
+      </ul>
+    </div>
+    <div class="f-col">
+      <h4>مدیریت</h4>
+      <ul>
+        <li><a href="/admin">پنل ادمین</a></li>
+        <li><a href="/admin/users">کاربران</a></li>
+        <li><a href="/admin/settings">تنظیمات</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© ۱۴۰۵ ZandiBot — تمام حقوق محفوظ است</span>
+    <span>ساخته شده برای تریدرهای حرفه‌ای</span>
+  </div>
+</footer>
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script>
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+/* ═══ CURSOR ═══ */
+const cur = document.getElementById('cur');
+const curF = document.getElementById('curF');
+let mx=0,my=0,fx=0,fy=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+function animCursor(){
+  fx += (mx-fx)*.12; fy += (my-fy)*.12;
+  cur.style.left  = mx+'px'; cur.style.top  = my+'px';
+  curF.style.left = fx+'px'; curF.style.top = fy+'px';
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+
+document.querySelectorAll('a,button,.fc,.hs,.wr-card,.pc,.chk,.sig-glass').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cur.style.transform = 'translate(-50%,-50%) scale(2)';
+    curF.style.transform = 'translate(-50%,-50%) scale(1.5)';
+    curF.style.borderColor = 'rgba(0,255,204,.7)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cur.style.transform = 'translate(-50%,-50%) scale(1)';
+    curF.style.transform = 'translate(-50%,-50%) scale(1)';
+    curF.style.borderColor = 'rgba(0,255,204,.4)';
+  });
+});
+
+/* ═══ STARFIELD ═══ */
+const sf = document.getElementById('universe');
+const sc = sf.getContext('2d');
+function resizeSF(){ sf.width=window.innerWidth; sf.height=window.innerHeight; }
+resizeSF(); window.addEventListener('resize',resizeSF);
+
+const STARS = Array.from({length:140},()=>({
+  x:Math.random()*sf.width, y:Math.random()*sf.height,
+  r:Math.random()*1.3+.2, o:Math.random()*.45+.08,
+  dx:(Math.random()-.5)*.12, dy:(Math.random()-.5)*.12,
+  c:['0,255,204','247,147,26','120,180,255','255,255,255'][Math.floor(Math.random()*4)]
+}));
+
+function drawUniverse(){
+  sc.clearRect(0,0,sf.width,sf.height);
+  STARS.forEach(s=>{
+    sc.beginPath(); sc.arc(s.x,s.y,s.r,0,Math.PI*2);
+    sc.fillStyle=`rgba(${s.c},${s.o})`; sc.fill();
+    s.x+=s.dx; s.y+=s.dy;
+    if(s.x<-2) s.x=sf.width+2;
+    if(s.x>sf.width+2) s.x=-2;
+    if(s.y<-2) s.y=sf.height+2;
+    if(s.y>sf.height+2) s.y=-2;
+    STARS.forEach(s2=>{
+      const d=Math.hypot(s.x-s2.x,s.y-s2.y);
+      if(d<90){
+        sc.beginPath(); sc.moveTo(s.x,s.y); sc.lineTo(s2.x,s2.y);
+        sc.strokeStyle=`rgba(0,255,204,${.04*(1-d/90)})`; sc.lineWidth=.5; sc.stroke();
+      }
+    });
+  });
+  requestAnimationFrame(drawUniverse);
+}
+drawUniverse();
+
+/* ═══ LOADER ═══ */
+const loaderBar = document.getElementById('loaderBar');
+const loaderPct = document.getElementById('loaderPct');
+const loader    = document.getElementById('loader');
+
+let pct = 0;
+const loaderInt = setInterval(()=>{
+  pct += Math.random()*12+3;
+  if(pct>=100){ pct=100; clearInterval(loaderInt); startHero(); }
+  loaderBar.style.width = pct+'%';
+  loaderPct.textContent = Math.round(pct)+'%';
+}, 60);
+
+function startHero(){
+  gsap.to(loader,{
+    opacity:0, duration:.8, ease:'power2.in',
+    onComplete:()=>{ loader.style.display='none'; initAnimations(); }
+  });
+}
+
+/* ═══ MAIN ANIMATIONS ═══ */
+function initAnimations(){
+
+  // NAV entrance
+  gsap.from('#nav',{y:-80,opacity:0,duration:.8,ease:'power3.out'});
+
+  // BADGE
+  gsap.to('#hBadge',{opacity:1,y:0,duration:.8,delay:.3,ease:'power3.out'});
+  gsap.from('#hBadge',{y:-20,duration:.8,delay:.3,ease:'power3.out'});
+
+  // COIN
+  gsap.to('#coinScene',{opacity:1,duration:1,delay:.5,ease:'power2.out'});
+  gsap.from('#coinScene',{scale:.6,duration:1,delay:.5,ease:'back.out(1.4)'});
+
+  // HEADLINE rows
+  gsap.to('#hl1',{y:'0%',duration:.9,delay:.7,ease:'power4.out'});
+  gsap.to('#hl2',{y:'0%',duration:.9,delay:.85,ease:'power4.out'});
+  gsap.to('#hl3',{y:'0%',duration:.9,delay:1.0,ease:'power4.out'});
+
+  // SUBTEXT
+  gsap.to('#heroSub',{opacity:1,y:0,duration:.8,delay:1.1,ease:'power3.out'});
+  gsap.from('#heroSub',{y:30,duration:.8,delay:1.1,ease:'power3.out'});
+
+  // BUTTONS
+  gsap.to('#heroBtns',{opacity:1,y:0,duration:.8,delay:1.25,ease:'power3.out'});
+  gsap.from('#heroBtns',{y:30,duration:.8,delay:1.25,ease:'power3.out'});
+
+  // STATS
+  gsap.to('#heroStats',{opacity:1,y:0,duration:.8,delay:1.4,ease:'power3.out'});
+  gsap.from('#heroStats',{y:30,duration:.8,delay:1.4,ease:'power3.out'});
+
+  // NAV scroll
+  window.addEventListener('scroll',()=>{
+    document.getElementById('nav').classList.toggle('scrolled',window.scrollY>60);
+  });
+
+  // SCROLL REVEALS
+  gsap.utils.toArray('.rv').forEach((el,i)=>{
+    gsap.fromTo(el,
+      {opacity:0, y:50, scale:.98},
+      {
+        opacity:1, y:0, scale:1,
+        duration:.9,
+        ease:'power3.out',
+        scrollTrigger:{
+          trigger:el,
+          start:'top 88%',
+          toggleActions:'play none none reverse'
+        },
+        delay: (i%3)*0.07
+      }
+    );
+  });
+
+  // PARALLAX SECTIONS
+  gsap.utils.toArray('.orb').forEach(orb=>{
+    gsap.to(orb,{
+      y:-60,
+      ease:'none',
+      scrollTrigger:{ trigger:'.hero', start:'top top', end:'bottom top', scrub:1.5 }
+    });
+  });
+
+  // COIN PARALLAX
+  gsap.to('#coinScene',{
+    y:-40, scale:1.05,
+    ease:'none',
+    scrollTrigger:{ trigger:'.hero', start:'top top', end:'bottom top', scrub:2 }
+  });
+
+  // GRID FADE
+  gsap.to('.hero-grid',{
+    opacity:0,
+    ease:'none',
+    scrollTrigger:{ trigger:'.hero', start:'center top', end:'bottom top', scrub:1 }
+  });
+
+  // FEATURE CARDS stagger
+  gsap.from('.fc',{
+    opacity:0, y:60, stagger:.1, duration:.9, ease:'power3.out',
+    scrollTrigger:{ trigger:'.feat-grid', start:'top 85%' }
+  });
+
+  // WIN RATE counters
+  const wrTargets = [{el:'wr1',val:72,suf:'%'},{el:'wr2',val:58,suf:'%'},{el:'wr3',val:2.5,suf:'R'},{el:'wr4',val:430,suf:''}];
+  ScrollTrigger.create({
+    trigger:'.wr-grid', start:'top 80%', once:true,
+    onEnter:()=>{
+      wrTargets.forEach(w=>{
+        gsap.to({v:0},{v:w.val,duration:2,ease:'power2.out',
+          onUpdate:function(){ document.getElementById(w.el).textContent = (w.val%1===0?Math.round(this.targets()[0].v):this.targets()[0].v.toFixed(1))+w.suf; }
+        });
+      });
+    }
+  });
+
+  // PRICING cards entrance
+  gsap.from('.pc',{
+    opacity:0, y:80, rotateX:8, stagger:.12, duration:1, ease:'power3.out',
+    scrollTrigger:{ trigger:'.price-grid', start:'top 85%' }
+  });
+
+  // CHECKLIST items
+  gsap.from('.chk',{
+    opacity:0, x:30, stagger:.1, duration:.6, ease:'power3.out',
+    scrollTrigger:{ trigger:'.chk-list', start:'top 85%' }
+  });
+
+  // SIG GLASS parallax tilt
+  const sigGlass = document.querySelector('.sig-glass');
+  if(sigGlass){
+    sigGlass.addEventListener('mousemove',e=>{
+      const r = sigGlass.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const rx = -(e.clientY-cy)/r.height*8;
+      const ry = (e.clientX-cx)/r.width*8;
+      gsap.to(sigGlass,{ rotateX:rx, rotateY:ry, duration:.4, ease:'power2.out', transformPerspective:800 });
+    });
+    sigGlass.addEventListener('mouseleave',()=>{
+      gsap.to(sigGlass,{ rotateX:0, rotateY:0, duration:.6, ease:'elastic.out(1,.4)' });
+    });
+  }
+
+  // FEATURE CARD tilt
+  document.querySelectorAll('.fc').forEach(fc=>{
+    fc.addEventListener('mousemove',e=>{
+      const r=fc.getBoundingClientRect();
+      const rx=-(e.clientY-r.top-r.height/2)/r.height*10;
+      const ry=(e.clientX-r.left-r.width/2)/r.width*10;
+      gsap.to(fc,{rotateX:rx,rotateY:ry,duration:.3,ease:'power2.out',transformPerspective:600});
+    });
+    fc.addEventListener('mouseleave',()=>{
+      gsap.to(fc,{rotateX:0,rotateY:0,duration:.5,ease:'elastic.out(1,.5)'});
+    });
+  });
+
+  // CTA
+  gsap.from('.cta-box',{
+    opacity:0,y:60,scale:.96,duration:1,ease:'power3.out',
+    scrollTrigger:{ trigger:'.cta-box',start:'top 85%' }
+  });
+}
+
+/* ═══ NAV SMOOTH SCROLL ═══ */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    gsap.to(window,{duration:1.2,scrollTo:{y:a.getAttribute('href'),offsetY:100},ease:'power3.inOut'});
+  });
+});
+
+/* ═══ LIVE PRICES ═══ */
+const prices = {
+  btc: 105420, eth: 3852, sol: 185.4, bnb: 642, xrp: 0.842
+};
+
+function jitter(v, pct){ return v * (1+(Math.random()-.49)*pct); }
+
+function updatePrices(){
+  prices.btc = jitter(prices.btc,.0004);
+  prices.eth = jitter(prices.eth,.0005);
+  prices.sol = jitter(prices.sol,.0007);
+  prices.bnb = jitter(prices.bnb,.0004);
+  prices.xrp = jitter(prices.xrp,.0008);
+
+  const fmt = (v,d=0)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+  // hero chip
+  const hp = document.getElementById('heroPrice');
+  if(hp) hp.textContent = '$'+fmt(prices.btc);
+
+  // ticker
+  const tb=document.getElementById('t-btc'); if(tb) tb.textContent='$'+fmt(prices.btc);
+  const te=document.getElementById('t-eth'); if(te) te.textContent='$'+fmt(prices.eth);
+  const ts=document.getElementById('t-sol'); if(ts) ts.textContent='$'+prices.sol.toFixed(1);
+  const tn=document.getElementById('t-bnb'); if(tn) tn.textContent='$'+fmt(prices.bnb);
+  const tx=document.getElementById('t-xrp'); if(tx) tx.textContent='$'+prices.xrp.toFixed(3);
+}
+
+setInterval(updatePrices, 2000);
+</script>
+</body>
+</html>

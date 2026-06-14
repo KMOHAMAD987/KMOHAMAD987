@@ -149,7 +149,7 @@ def update_trade(trade_id: str, current_price: float) -> Optional[str]:
 
     t = db["trades"][trade_id]
 
-    if t["status"] in ("SL", "TP3", "EXPIRED"):
+    if t["status"] != "OPEN":
         return None
 
     direction = t["direction"]
@@ -165,47 +165,44 @@ def update_trade(trade_id: str, current_price: float) -> Optional[str]:
     if direction == "LONG":
         if current_price <= sl:
             hit = "SL"
-            t["hit_sl"]  = True
-            t["pnl_r"]   = -1.0
-        else:
-            # اگه قیمت مستقیم از TP1 رد شده و به TP2 یا TP3 رسیده، همه رو mark کن
-            if not t["hit_tp1"] and current_price >= tp1:
-                t["hit_tp1"] = True
-                t["pnl_r"]   = 1.5
-                t["status"]  = "TP1"
-                hit = "TP1"
-            if not t["hit_tp2"] and current_price >= tp2:
-                t["hit_tp2"] = True
-                t["pnl_r"]   = 2.5
-                t["status"]  = "TP2"
-                hit = "TP2"
-            if not t["hit_tp3"] and current_price >= tp3:
-                t["hit_tp3"] = True
-                t["pnl_r"]   = 4.0
-                t["status"]  = "TP3"
-                hit = "TP3"
+            t["hit_sl"]    = True
+            t["pnl_r"]     = -1.0
+        elif not t["hit_tp1"] and current_price >= tp1:
+            hit = "TP1"
+            t["hit_tp1"]   = True
+            t["pnl_r"]     = 1.5
+            t["status"]    = "TP1"
+        if t["hit_tp1"] and not t["hit_tp2"] and current_price >= tp2:
+            hit = "TP2"
+            t["hit_tp2"]   = True
+            t["pnl_r"]     = 2.5
+            t["status"]    = "TP2"
+        if t["hit_tp2"] and not t["hit_tp3"] and current_price >= tp3:
+            hit = "TP3"
+            t["hit_tp3"]   = True
+            t["pnl_r"]     = 4.0
+            t["status"]    = "TP3"
 
     elif direction == "SHORT":
         if current_price >= sl:
             hit = "SL"
-            t["hit_sl"]  = True
-            t["pnl_r"]   = -1.0
-        else:
-            if not t["hit_tp1"] and current_price <= tp1:
-                t["hit_tp1"] = True
-                t["pnl_r"]   = 1.5
-                t["status"]  = "TP1"
-                hit = "TP1"
-            if not t["hit_tp2"] and current_price <= tp2:
-                t["hit_tp2"] = True
-                t["pnl_r"]   = 2.5
-                t["status"]  = "TP2"
-                hit = "TP2"
-            if not t["hit_tp3"] and current_price <= tp3:
-                t["hit_tp3"] = True
-                t["pnl_r"]   = 4.0
-                t["status"]  = "TP3"
-                hit = "TP3"
+            t["hit_sl"]    = True
+            t["pnl_r"]     = -1.0
+        elif not t["hit_tp1"] and current_price <= tp1:
+            hit = "TP1"
+            t["hit_tp1"]   = True
+            t["pnl_r"]     = 1.5
+            t["status"]    = "TP1"
+        if t["hit_tp1"] and not t["hit_tp2"] and current_price <= tp2:
+            hit = "TP2"
+            t["hit_tp2"]   = True
+            t["pnl_r"]     = 2.5
+            t["status"]    = "TP2"
+        if t["hit_tp2"] and not t["hit_tp3"] and current_price <= tp3:
+            hit = "TP3"
+            t["hit_tp3"]   = True
+            t["pnl_r"]     = 4.0
+            t["status"]    = "TP3"
 
     if hit in ["SL"]:
         t["status"]     = "SL"
@@ -367,12 +364,6 @@ def get_open_trades() -> list:
     """لیست معاملات باز"""
     db = _load_db()
     return [t for t in db["trades"].values() if t["status"] == "OPEN"]
-
-
-def get_trade_by_id(trade_id: str) -> Optional[dict]:
-    """دریافت یک معامله با ID — همیشه آخرین state از DB"""
-    db = _load_db()
-    return db["trades"].get(trade_id)
 
 
 def get_stats() -> dict:
