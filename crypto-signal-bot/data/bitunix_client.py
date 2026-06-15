@@ -67,7 +67,7 @@ def get_klines(
             return pd.DataFrame()
 
         df = pd.DataFrame(candles)
-        df["time"] = pd.to_datetime(df["time"], unit="ms")
+        df["time"] = pd.to_datetime(df["time"].astype("int64"), unit="ms")
         df[["open", "high", "low", "close"]] = df[["open", "high", "low", "close"]].astype(float)
         df[["quoteVol", "baseVol"]] = df[["quoteVol", "baseVol"]].astype(float)
         df = df.sort_values("time").reset_index(drop=True)
