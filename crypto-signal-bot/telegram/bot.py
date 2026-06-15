@@ -405,7 +405,8 @@ def broadcast_signal(signal):
 def broadcast_tp_sl(trade, hit):
     users = load_users()
     emoji = {"TP1":"🟡","TP2":"🟠","TP3":"🏆","SL":"❌"}.get(hit, "📍")
-    pnl   = trade.get("pnl_r", 0)
+    default_pnl = {"TP1": 1.5, "TP2": 2.5, "TP3": 4.0, "SL": -1.0}.get(hit, 0)
+    pnl   = trade.get("pnl_r") or default_pnl
     pnl_str = f"+{pnl}R" if pnl > 0 else f"{pnl}R"
 
     # فاصله ورود تا خروج
