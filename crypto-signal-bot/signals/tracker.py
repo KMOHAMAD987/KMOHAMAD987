@@ -369,7 +369,7 @@ def get_open_trades() -> list:
     return [t for t in db["trades"].values() if t["status"] == "OPEN"]
 
 
-def get_trade_by_id(trade_id: str) -> dict | None:
+def get_trade_by_id(trade_id: str) -> Optional[dict]:
     """دریافت یک معامله با ID — همیشه آخرین state از DB"""
     db = _load_db()
     return db["trades"].get(trade_id)
