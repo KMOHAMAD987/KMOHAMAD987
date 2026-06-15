@@ -118,7 +118,7 @@ def vwap_signal(df: pd.DataFrame) -> dict:
     }
 
 
-def compute_vwap(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def compute_vwap(df: pd.DataFrame) -> tuple:
     """تابع اصلی - df رو می‌گیره، VWAP اضافه می‌کنه و خلاصه برمی‌گردونه"""
     df = add_vwap(df)
     summary = vwap_signal(df)
