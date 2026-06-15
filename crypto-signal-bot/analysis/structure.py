@@ -261,7 +261,7 @@ def find_fvg(df: pd.DataFrame, lookback: int = 50) -> dict:
 # تابع اصلی
 # ─────────────────────────────────────────
 
-def compute_structure(df: pd.DataFrame, pivot_len: int = 5) -> tuple[pd.DataFrame, dict]:
+def compute_structure(df: pd.DataFrame, pivot_len: int = 5) -> tuple:
     """همه ساختار بازار رو حساب می‌کنه"""
     df = find_swings(df, pivot_len=pivot_len)
 

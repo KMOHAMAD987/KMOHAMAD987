@@ -232,7 +232,7 @@ def volume_signal(df: pd.DataFrame) -> dict:
 # تابع اصلی — همه اندیکاتورها با هم
 # ─────────────────────────────────────────
 
-def compute_indicators(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def compute_indicators(df: pd.DataFrame) -> tuple:
     """
     دریافت دیتافریم خام → محاسبه همه اندیکاتورها → برگرداندن df + خلاصه
 
