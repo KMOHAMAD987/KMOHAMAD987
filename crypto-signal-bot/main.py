@@ -35,7 +35,7 @@ SCAN_INTERVAL   = 15 * 60   # هر ۱۵ دقیقه اسکن
 TRACK_INTERVAL  = 60         # هر ۱ دقیقه TP/SL چک
 
 MIN_CONFIDENCE  = "LOW"      # حداقل کانفیدنس برای ارسال
-MIN_SCORE       = 6          # حداقل امتیاز
+MIN_SCORE       = 8          # حداقل امتیاز
 MIN_RR          = 1.5        # حداقل R/R
 
 # cooldown — فاصله بین سیگنال‌های یک نماد
