@@ -240,8 +240,8 @@ def compute_indicators(df: pd.DataFrame) -> tuple:
         df:      دیتافریم با ستون‌های جدید
         summary: دیکشنری خلاصه سیگنال‌ها
     """
-    if len(df) < 200:
-        raise ValueError(f"حداقل ۲۰۰ کندل لازمه، الان {len(df)} داریم")
+    if len(df) < 100:
+        raise ValueError(f"حداقل ۱۰۰ کندل لازمه، الان {len(df)} داریم")
 
     df = add_emas(df)
     df = add_rsi(df)

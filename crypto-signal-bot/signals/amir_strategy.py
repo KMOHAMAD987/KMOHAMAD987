@@ -38,7 +38,7 @@ ALLOWED_SYMBOLS = [
 
 # حداقل‌ها
 MIN_SCORE  = 5.0   # از ۱۰ — پایین‌تر برای سیگنال بیشتر
-MIN_RR     = 1.5   # حداقل ۱:۱.۵
+MIN_RR     = 1.0   # حداقل ۱:۱
 MIN_PROB   = 50    # درصد احتمال
 
 @dataclass

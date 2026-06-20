@@ -67,10 +67,10 @@ def fetch_all_timeframes(symbol: str):
     """دریافت کندل‌های ۴H، ۱H، ۱۵m، ۵m"""
     try:
         return {
-            "4h":  get_klines(symbol, interval="4h",  limit=200),
-            "1h":  get_klines(symbol, interval="1h",  limit=200),
-            "15m": get_klines(symbol, interval="15m", limit=200),
-            "5m":  get_klines(symbol, interval="5m",  limit=200),
+            "4h":  get_klines(symbol, interval="4h",  limit=250),
+            "1h":  get_klines(symbol, interval="1h",  limit=250),
+            "15m": get_klines(symbol, interval="15m", limit=250),
+            "5m":  get_klines(symbol, interval="5m",  limit=250),
         }
     except Exception as e:
         print(f"⚠️  خطا در دریافت داده {symbol}: {e}")
@@ -81,9 +81,9 @@ def get_btc_bias():
     """تحلیل کامل BTC — نمره و بایاس"""
     try:
         from signals.amir_strategy import analyze_btc
-        df_4h  = get_klines("BTCUSDT", interval="4h",  limit=200)
-        df_1h  = get_klines("BTCUSDT", interval="1h",  limit=200)
-        df_15m = get_klines("BTCUSDT", interval="15m", limit=200)
+        df_4h  = get_klines("BTCUSDT", interval="4h",  limit=250)
+        df_1h  = get_klines("BTCUSDT", interval="1h",  limit=250)
+        df_15m = get_klines("BTCUSDT", interval="15m", limit=250)
         result = analyze_btc(df_4h, df_1h, df_15m)
         return result.get("bias", "neutral"), result.get("score", 5.0)
     except:
