@@ -31,9 +31,9 @@ ALLOWED_SYMBOLS = [
 ]
 
 # حداقل‌ها
-MIN_SCORE  = 8.0   # از ۱۰
-MIN_RR     = 3.0   # حداقل ۱:۳
-MIN_PROB   = 60    # درصد احتمال
+MIN_SCORE  = 6.5   # از ۱۰ — متعادل‌تر
+MIN_RR     = 2.0   # حداقل ۱:۲
+MIN_PROB   = 55    # درصد احتمال
 
 @dataclass
 class Signal:
@@ -371,9 +371,9 @@ def _levels_long(price, s5m, s1h, s15m):
     sl   = round(sl_candidate, 6)
     risk = price - sl
 
-    tp1 = round(price + risk * 1.2, 6)
-    tp2 = round(price + risk * 2.5, 6)
-    tp3 = round(price + risk * 4.0, 6)
+    tp1 = round(price + risk * 1.0, 6)
+    tp2 = round(price + risk * 2.0, 6)
+    tp3 = round(price + risk * 3.5, 6)
 
     # سقف: Swing High یا Bearish OB
     sh = s1h["swings"]["last_high"]
@@ -410,9 +410,9 @@ def _levels_short(price, s5m, s1h, s15m):
     sl   = round(sl_candidate, 6)
     risk = sl - price
 
-    tp1 = round(price - risk * 1.2, 6)
-    tp2 = round(price - risk * 2.5, 6)
-    tp3 = round(price - risk * 4.0, 6)
+    tp1 = round(price - risk * 1.0, 6)
+    tp2 = round(price - risk * 2.0, 6)
+    tp3 = round(price - risk * 3.5, 6)
 
     # کف: Swing Low یا Bullish OB
     sl2 = s1h["swings"]["last_low"]
@@ -482,7 +482,7 @@ def analyze(
 
     # ── ADX: بازار رنج شدید رو رد کن ──
     adx_15m = s15m.get("adx")
-    if adx_15m and adx_15m < 15:
+    if adx_15m and adx_15m < 12:
         return _no(symbol, price, f"ADX خیلی ضعیف ({adx_15m:.0f}) — بازار رنج محض")
 
     # ── فیلتر ۴H ارز — مهم‌ترین فیلتر ──
@@ -506,28 +506,24 @@ def analyze(
             f"نمره ناکافی: {best:.1f}/10 (حداقل {MIN_SCORE})",
             [f"LONG: {l_score}/10", f"SHORT: {s_score}/10"])
 
-    # ── فیلتر سخت: 4H ارز باید هم‌جهت باشه ──
+    # ── فیلتر 4H: پنالتی بجای رد کامل ──
     if direction == "LONG" and trend_4h == "bearish":
-        # اگه RSI 4H هم خیلی پایینه یا OB قوی هست استثنا بده
-        bull_ob_4h = s4h["ob"]["nearest_bull_ob"]
         price_in_4h_ob = s4h["ob"]["price_in_bull_ob"]
-        if not price_in_4h_ob:
-            return _no(symbol, price,
-                f"4H روند نزولی ({trend_4h}) + قیمت خارج از OB — LONG ممنوع",
-                reasons)
-        else:
+        if price_in_4h_ob:
             reasons.append("⚠️ 4H نزولی اما داخل OB — ریسک بالا")
-            score = round(score * 0.85, 1)  # ۱۵٪ کسر
+            score = round(score * 0.85, 1)
+        else:
+            reasons.append("⚠️ 4H نزولی — پنالتی اعمال شد")
+            score = round(score * 0.75, 1)
 
     if direction == "SHORT" and trend_4h == "bullish":
         price_in_4h_ob = s4h["ob"]["price_in_bear_ob"]
-        if not price_in_4h_ob:
-            return _no(symbol, price,
-                f"4H روند صعودی ({trend_4h}) + قیمت خارج از OB — SHORT ممنوع",
-                reasons)
-        else:
+        if price_in_4h_ob:
             reasons.append("⚠️ 4H صعودی اما داخل Bearish OB — ریسک بالا")
             score = round(score * 0.85, 1)
+        else:
+            reasons.append("⚠️ 4H صعودی — پنالتی اعمال شد")
+            score = round(score * 0.75, 1)
 
     # بررسی دوباره نمره بعد از کسر ۴H
     if score < MIN_SCORE:
@@ -546,8 +542,8 @@ def analyze(
         return _no(symbol, price, "BTC شدیداً صعودی — شورت ممنوع")
 
     # ── کانفیدنس ──
-    if score >= 9.5:   conf = "HIGH"
-    elif score >= 8.0: conf = "MEDIUM"
+    if score >= 8.5:   conf = "HIGH"
+    elif score >= 7.0: conf = "MEDIUM"
     else:              conf = "LOW"
 
     lev  = _suggest_leverage(score, rr)
