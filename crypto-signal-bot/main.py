@@ -34,12 +34,12 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
 SCAN_INTERVAL   = 15 * 60   # هر ۱۵ دقیقه اسکن
 TRACK_INTERVAL  = 60         # هر ۱ دقیقه TP/SL چک
 
-MIN_CONFIDENCE  = "MEDIUM"   # حداقل کانفیدنس برای ارسال
-MIN_SCORE       = 6          # حداقل امتیاز از ۱۱
+MIN_CONFIDENCE  = "LOW"      # حداقل کانفیدنس برای ارسال
+MIN_SCORE       = 6          # حداقل امتیاز
 MIN_RR          = 1.5        # حداقل R/R
 
-# cooldown دائمی — در فایل ذخیره می‌شه تا restart هم حفظ بشه
-SIGNAL_COOLDOWN = 90 * 60   # ۱.۵ ساعت فاصله بین سیگنال‌های یک نماد
+# cooldown — فاصله بین سیگنال‌های یک نماد
+SIGNAL_COOLDOWN = 60 * 60   # ۱ ساعت
 _COOLDOWN_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/cooldown.json")
 
 
