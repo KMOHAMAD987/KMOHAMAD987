@@ -206,14 +206,16 @@ def get_oi_analysis(symbol):
     price_up = price_change_pct > 0.1
     price_down = price_change_pct < -0.1
 
+    oi_usd = current_oi * mark_price
+
     # اگه داده قبلی نداریم (اولین بار)
     time_diff = time.time() - prev_time
     if prev_time == 0 or time_diff > 7200:
         return {
             "score_adj": 0,
-            "reason": "📊 OI: ${:,.0f} (بدون مقایسه)".format(current_oi),
+            "reason": "📊 OI: ${:,.0f} (بدون مقایسه)".format(oi_usd),
             "oi_change_pct": 0,
-            "oi_value": current_oi,
+            "oi_value": oi_usd,
             "signal": "no_data",
         }
 
@@ -246,7 +248,7 @@ def get_oi_analysis(symbol):
         "score_adj": score_adj,
         "reason": reason,
         "oi_change_pct": round(oi_change_pct, 2),
-        "oi_value": current_oi,
+        "oi_value": oi_usd,
         "price_change_pct": round(price_change_pct, 2),
         "signal": signal,
     }
@@ -403,11 +405,14 @@ def get_volume_oi_combo(symbol):
     if price == 0 or oi == 0:
         return {"score_adj": 0, "reason": "داده ناقص", "signal": "neutral"}
 
-    # نسبت حجم به OI — بالای ۲ یعنی حجم خیلی بالاست
-    vol_oi_ratio = vol / oi if oi > 0 else 0
+    # OI به دلار تبدیل (API تعداد کوین میده)
+    oi_usd = oi * price
+
+    # نسبت حجم به OI (هر دو دلاری)
+    vol_oi_ratio = vol / oi_usd if oi_usd > 0 else 0
 
     # OI نسبت به مارکت‌کپ تخمینی
-    oi_intensity = oi / (price * 1000000) if price > 0 else 0
+    oi_intensity = oi_usd / (price * 1000000) if price > 0 else 0
 
     if vol_oi_ratio > 3.0:
         signal = "high_vol_high_oi"
@@ -436,7 +441,7 @@ def get_volume_oi_combo(symbol):
         "signal": signal,
         "vol_oi_ratio": round(vol_oi_ratio, 2),
         "volume_24h": vol,
-        "open_interest": oi,
+        "open_interest": oi_usd,
         "oi_intensity": round(oi_intensity, 4),
     }
 
