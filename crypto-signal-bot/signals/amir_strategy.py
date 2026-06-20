@@ -37,9 +37,9 @@ ALLOWED_SYMBOLS = [
 ]
 
 # حداقل‌ها
-MIN_SCORE  = 6.5   # از ۱۰ — متعادل‌تر
-MIN_RR     = 2.0   # حداقل ۱:۲
-MIN_PROB   = 55    # درصد احتمال
+MIN_SCORE  = 5.0   # از ۱۰ — پایین‌تر برای سیگنال بیشتر
+MIN_RR     = 1.5   # حداقل ۱:۱.۵
+MIN_PROB   = 50    # درصد احتمال
 
 @dataclass
 class Signal:
@@ -335,9 +335,9 @@ def _score_coin(s4h, s1h, s15m, s5m, btc_bias, direction) -> tuple:
     v = s15m["vwap"]["vwap"]
     if v:
         dist = abs(price - v) / price * 100
-        if dist < 0.1:
-            score -= 2.0
-            reasons.append("⛔ قیمت چسبیده به VWAP — وسط رنج")
+        if dist < 0.05:
+            score -= 1.0
+            reasons.append("⚠️ قیمت نزدیک VWAP")
 
     score = max(0.0, min(10.0, score))
     return round(score, 1), reasons
@@ -488,7 +488,7 @@ def analyze(
 
     # ── ADX: بازار رنج شدید رو رد کن ──
     adx_15m = s15m.get("adx")
-    if adx_15m and adx_15m < 12:
+    if adx_15m and adx_15m < 8:
         return _no(symbol, price, f"ADX خیلی ضعیف ({adx_15m:.0f}) — بازار رنج محض")
 
     # ── فیلتر ۴H ارز — مهم‌ترین فیلتر ──
@@ -517,19 +517,19 @@ def analyze(
         price_in_4h_ob = s4h["ob"]["price_in_bull_ob"]
         if price_in_4h_ob:
             reasons.append("⚠️ 4H نزولی اما داخل OB — ریسک بالا")
-            score = round(score * 0.85, 1)
+            score = round(score * 0.90, 1)
         else:
             reasons.append("⚠️ 4H نزولی — پنالتی اعمال شد")
-            score = round(score * 0.75, 1)
+            score = round(score * 0.82, 1)
 
     if direction == "SHORT" and trend_4h == "bullish":
         price_in_4h_ob = s4h["ob"]["price_in_bear_ob"]
         if price_in_4h_ob:
             reasons.append("⚠️ 4H صعودی اما داخل Bearish OB — ریسک بالا")
-            score = round(score * 0.85, 1)
+            score = round(score * 0.90, 1)
         else:
             reasons.append("⚠️ 4H صعودی — پنالتی اعمال شد")
-            score = round(score * 0.75, 1)
+            score = round(score * 0.82, 1)
 
     # بررسی دوباره نمره بعد از کسر ۴H
     if score < MIN_SCORE:
@@ -542,9 +542,9 @@ def analyze(
             reasons)
 
     # ── همسویی BTC ──
-    if btc_bias == "bearish" and direction == "LONG" and btc_score < 4:
+    if btc_bias == "bearish" and direction == "LONG" and btc_score < 3:
         return _no(symbol, price, "BTC شدیداً نزولی — لانگ ممنوع")
-    if btc_bias == "bullish" and direction == "SHORT" and btc_score > 7:
+    if btc_bias == "bullish" and direction == "SHORT" and btc_score > 8:
         return _no(symbol, price, "BTC شدیداً صعودی — شورت ممنوع")
 
     # ── Hyperliquid Funding Rate ──
