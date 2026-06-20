@@ -149,7 +149,7 @@ def update_trade(trade_id: str, current_price: float) -> Optional[str]:
 
     t = db["trades"][trade_id]
 
-    if t["status"] != "OPEN":
+    if t["status"] in ("SL", "TP3", "EXPIRED"):
         return None
 
     direction = t["direction"]
