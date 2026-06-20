@@ -5,13 +5,21 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
+from jinja2 import FileSystemLoader, ChoiceLoader
 from signals.tracker import get_open_trades, get_stats, _load_db
 from data.bitunix_client import get_ticker
 from telegram.bot import load_users, ADMIN_IDS
 from datetime import datetime
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder="web/templates", static_folder="web/static")
+
+app.jinja_loader = ChoiceLoader([
+    FileSystemLoader(os.path.join(BASE_DIR, "web/templates")),
+    FileSystemLoader(os.path.join(BASE_DIR, "../zandibot/web/templates")),
+    FileSystemLoader("/root/zandibot/web/templates"),
+])
 
 
 @app.route("/")
