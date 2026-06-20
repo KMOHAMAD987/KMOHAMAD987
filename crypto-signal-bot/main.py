@@ -17,7 +17,8 @@ from data.bitunix_client import get_klines, get_ticker
 from signals.amir_strategy import analyze
 from signals.tracker import (
     save_signal, update_trade, get_open_trades,
-    expire_old_trades, get_winrate_report, get_trade_by_id
+    expire_old_trades, get_winrate_report, get_trade_by_id,
+    cleanup_test_trades
 )
 from telegram.bot import (
     send_signal, send_message,
@@ -243,6 +244,9 @@ def track_loop() -> None:
 # ─────────────────────────────────────────
 
 def main():
+    # پاکسازی trade‌های تست
+    cleanup_test_trades()
+
     print("🤖 ربات سیگنال سبک امیر شروع شد")
     print(f"📊 نمادها: {', '.join(SYMBOLS)}")
     print(f"⚙️  حداقل امتیاز: {MIN_SCORE}/10")

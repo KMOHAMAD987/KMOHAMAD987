@@ -443,7 +443,13 @@ def broadcast_tp_sl(trade, hit):
 
     # فاصله ورود تا خروج
     entry = trade.get("entry", 0)
-    exit_p = trade.get("exit_price") or trade.get(f"tp{hit[-1].lower()}" if hit.startswith("TP") else "stop_loss", 0)
+    if hit == "SL":
+        exit_p = trade.get("exit_price") or trade.get("stop_loss", 0)
+    elif hit.startswith("TP"):
+        tp_key = hit.lower().replace("tp", "tp")  # tp1, tp2, tp3
+        exit_p = trade.get("exit_price") or trade.get(tp_key, 0)
+    else:
+        exit_p = trade.get("exit_price", 0)
 
     text = (
         f"{emoji} <b>{hit} زده شد!</b>\n\n"

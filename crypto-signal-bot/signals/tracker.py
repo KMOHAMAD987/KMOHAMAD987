@@ -207,14 +207,15 @@ def update_trade(trade_id: str, current_price: float) -> Optional[str]:
                 t["status"]  = "TP3"
                 hit = "TP3"
 
-    if hit in ["SL"]:
-        t["status"]     = "SL"
-        t["closed_at"]  = datetime.utcnow().isoformat()
+    if hit:
         t["exit_price"] = current_price
 
-    if hit in ["TP3"]:
+    if hit == "SL":
+        t["status"]     = "SL"
         t["closed_at"]  = datetime.utcnow().isoformat()
-        t["exit_price"] = current_price
+
+    if hit == "TP3":
+        t["closed_at"]  = datetime.utcnow().isoformat()
 
     db["trades"][trade_id] = t
     _recalc_stats(db)
@@ -373,6 +374,23 @@ def get_trade_by_id(trade_id: str) -> Optional[dict]:
     """دریافت یک معامله با ID — همیشه آخرین state از DB"""
     db = _load_db()
     return db["trades"].get(trade_id)
+
+
+def cleanup_test_trades():
+    """حذف trade‌های تست/فیک از DB"""
+    db = _load_db()
+    to_remove = []
+    for tid, t in db["trades"].items():
+        entry = t.get("entry", 0)
+        if entry == 65000.0 or entry == 3500.0:
+            to_remove.append(tid)
+    for tid in to_remove:
+        del db["trades"][tid]
+        print(f"🗑️ Trade تست حذف شد: {tid}")
+    if to_remove:
+        _recalc_stats(db)
+        _save_db(db)
+    return len(to_remove)
 
 
 def get_stats() -> dict:
