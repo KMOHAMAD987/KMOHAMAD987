@@ -953,6 +953,15 @@ TP1: {tp1} | SL: {sl}
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script>
+const API = window.location.origin;
+let allUsers = [];
+let allSignals = [];
+
+async function api(url, opts) {
+  try { const r = await fetch(API + url, opts); return await r.json(); }
+  catch(e) { return {ok:false}; }
+}
+
 /* ═══ PAGE NAVIGATION ═══ */
 const pages = {
   'dashboard':    {title:'داشبورد',sub:'خلاصه وضعیت سیستم'},
@@ -970,128 +979,303 @@ const pages = {
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
-
   const el = document.getElementById('page-'+id);
   if(el) el.classList.add('active');
-
-  // find button
   document.querySelectorAll('.sb-item').forEach(b=>{
-    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${id}'`)) b.classList.add('active');
+    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+id+"'")) b.classList.add('active');
   });
-
   const info = pages[id] || {title:id,sub:''};
   document.getElementById('pageTitle').textContent = info.title;
   document.getElementById('pageSub').textContent   = info.sub;
-
-  // generate signals page
   if(id==='signals') renderSignals('all');
+  if(id==='users') loadUsersPage();
+  if(id==='winrate') loadWinrate();
+  if(id==='subscriptions') loadSubscriptions();
 }
 
-/* ═══ SIGNALS RENDER ═══ */
-const signalsData = [
-  {sym:'BTCUSDT',dir:'LONG',score:9,entry:105250,tp1:106980,sl:104100,status:'open'},
-  {sym:'ETHUSDT',dir:'SHORT',score:7,entry:3842,tp1:3710,sl:3920,status:'tp1'},
-  {sym:'SOLUSDT',dir:'LONG',score:8,entry:184.2,tp1:188.5,sl:181,status:'tp2'},
-  {sym:'BNBUSDT',dir:'SHORT',score:6,entry:641,tp1:618,sl:655,status:'sl'},
-  {sym:'XRPUSDT',dir:'LONG',score:7,entry:0.838,tp1:0.862,sl:0.818,status:'open'},
-  {sym:'BTCUSDT',dir:'LONG',score:8,entry:104100,tp1:106200,sl:102800,status:'tp1'},
-];
+/* ═══ LOAD DASHBOARD ═══ */
+async function loadDashboard() {
+  const [statsR, usersR, sigsR, histR] = await Promise.all([
+    api('/api/stats'), api('/api/admin/users'), api('/api/signals/open'), api('/api/trades/history?limit=20')
+  ]);
 
+  const st = statsR.data || statsR.stats || {};
+  allUsers = usersR.data || [];
+  const openSigs = sigsR.data || [];
+  const history = histR.data || [];
+  allSignals = [...openSigs.map(s=>({...s,status:'open'})), ...history];
+
+  // Stats cards
+  const totalUsers = allUsers.length;
+  const activeUsers = allUsers.filter(u=>u.is_active).length;
+  document.querySelector('#page-dashboard .stats-grid').innerHTML =
+    '<div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">کل کاربران</div><div class="stat-value neon">'+totalUsers+'</div><div class="stat-change up">فعال: '+activeUsers+'</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-label">کل سیگنال</div><div class="stat-value gold">'+(st.total||0)+'</div><div class="stat-change">باز: '+(st.open||0)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">📈</div><div class="stat-label">وین‌ریت TP1</div><div class="stat-value green">'+(st.winrate_tp1||0)+'%</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">💹</div><div class="stat-label">میانگین R/R</div><div class="stat-value gold">'+(st.avg_rr||0)+'R</div></div>';
+
+  // Recent signals table
+  const tbody = document.getElementById('recentSignals');
+  if(tbody) {
+    tbody.innerHTML = '';
+    allSignals.slice(0,5).forEach(function(s) {
+      var dirBadge = s.direction==='LONG' ? '<span class="badge badge-green">🟢 LONG</span>' : '<span class="badge badge-red">🔴 SHORT</span>';
+      var stBadge = s.status==='open'||s.status==='OPEN' ? '<span class="badge badge-neon">● باز</span>' :
+        s.status==='TP1' ? '<span class="badge badge-green">TP1 ✓</span>' :
+        s.status==='TP2' ? '<span class="badge badge-green">TP2 ✓</span>' :
+        s.status==='TP3' ? '<span class="badge badge-green">TP3 🏆</span>' :
+        s.status==='SL' ? '<span class="badge badge-red">SL ✕</span>' :
+        '<span class="badge badge-gold">منقضی</span>';
+      tbody.innerHTML += '<tr><td><b>'+s.symbol+'</b></td><td>'+dirBadge+'</td><td>'+(s.score||0)+'/10</td><td>'+fmtP(s.entry)+'</td><td>'+stBadge+'</td><td style="color:var(--text2);">'+(s.opened_at||'').slice(0,16)+'</td></tr>';
+    });
+  }
+
+  // Users sidebar badge
+  document.querySelectorAll('.sb-badge').forEach(function(b) {
+    if(b.parentElement.getAttribute('onclick') && b.parentElement.getAttribute('onclick').includes('users'))
+      b.textContent = totalUsers;
+    if(b.parentElement.getAttribute('onclick') && b.parentElement.getAttribute('onclick').includes('signals'))
+      b.textContent = openSigs.length;
+  });
+
+  // Recent users
+  var recentUsersBody = document.querySelectorAll('#page-dashboard .table-card')[1];
+  if(recentUsersBody) {
+    var utbody = recentUsersBody.querySelector('tbody');
+    if(utbody) {
+      utbody.innerHTML = '';
+      allUsers.slice(0,3).forEach(function(u) {
+        var planBadge = u.plan==='vip' ? '<span class="badge badge-gold">VIP</span>' :
+          u.plan==='pro' ? '<span class="badge badge-neon">حرفه‌ای</span>' :
+          '<span class="badge badge-blue">پایه</span>';
+        var stBadge = u.is_active ? '<span class="badge badge-green">● فعال</span>' : '<span class="badge badge-gold">● غیرفعال</span>';
+        utbody.innerHTML += '<tr><td><b>'+(u.username||'?')+'</b><div style="font-size:.7rem;color:var(--text2);">'+(u.phone||'')+'</div></td><td>'+planBadge+'</td><td>'+stBadge+'</td><td style="color:var(--text2);">'+(u.created_at||'').slice(0,10)+'</td><td><button class="act-btn" onclick="openUserModal('+u.id+')">جزئیات</button></td></tr>';
+      });
+    }
+  }
+}
+
+function fmtP(p) {
+  if(!p) return '0';
+  p = parseFloat(p);
+  if(p>=1000) return p.toLocaleString('en',{maximumFractionDigits:2});
+  if(p>=1) return p.toFixed(3);
+  return p.toFixed(6);
+}
+
+/* ═══ SIGNALS ═══ */
 function renderSignals(filter){
   const grid = document.getElementById('sigGrid');
-  let data = filter==='all' ? signalsData :
-             filter==='long' ? signalsData.filter(s=>s.dir==='LONG') :
-             filter==='short' ? signalsData.filter(s=>s.dir==='SHORT') :
-             filter==='open' ? signalsData.filter(s=>s.status==='open') :
-             signalsData.filter(s=>s.status!=='open');
+  if(!grid) return;
+  var data = allSignals;
+  if(filter==='long') data = data.filter(function(s){return s.direction==='LONG';});
+  else if(filter==='short') data = data.filter(function(s){return s.direction==='SHORT';});
+  else if(filter==='open') data = data.filter(function(s){return s.status==='open'||s.status==='OPEN';});
+  else if(filter==='closed') data = data.filter(function(s){return s.status!=='open'&&s.status!=='OPEN';});
 
-  grid.innerHTML = data.map(s=>`
-    <div class="sig-mini ${s.dir.toLowerCase()}">
-      <div class="sig-mini-head">
-        <span class="sig-sym">${s.sym}</span>
-        <span class="sig-dir ${s.dir.toLowerCase()}">${s.dir==='LONG'?'🟢':'🔴'} ${s.dir}</span>
-      </div>
-      <div class="sig-mini-row"><span class="sig-mini-lbl">ورود</span><span class="sig-mini-val">${s.entry.toLocaleString()}</span></div>
-      <div class="sig-mini-row"><span class="sig-mini-lbl">TP1</span><span class="sig-mini-val" style="color:var(--green)">${s.tp1.toLocaleString()}</span></div>
-      <div class="sig-mini-row"><span class="sig-mini-lbl">SL</span><span class="sig-mini-val" style="color:var(--red)">${s.sl.toLocaleString()}</span></div>
-      <div class="sig-mini-row"><span class="sig-mini-lbl">وضعیت</span><span class="sig-mini-val">${statusBadge(s.status)}</span></div>
-      <div style="font-size:.7rem;color:var(--text2);margin-top:.5rem;">امتیاز: ${s.score}/10</div>
-      <div class="sig-score-bar">
-        ${Array.from({length:10},(_,i)=>`<div class="sseg ${i<s.score?'on':''}"></div>`).join('')}
-      </div>
-    </div>
-  `).join('');
-}
+  if(!data.length) { grid.innerHTML = '<div style="text-align:center;color:var(--text2);padding:2rem;grid-column:1/-1;">سیگنالی یافت نشد</div>'; return; }
 
-function statusBadge(s){
-  const map = {open:'<span class="badge badge-neon">● باز</span>',tp1:'<span class="badge badge-green">TP1 ✓</span>',tp2:'<span class="badge badge-green">TP2 ✓</span>',sl:'<span class="badge badge-red">SL ✕</span>'};
-  return map[s]||s;
+  grid.innerHTML = data.map(function(s) {
+    var sc = s.score||0;
+    var st = s.status||'open';
+    var stLow = st.toLowerCase();
+    var stBadge = stLow==='open' ? '<span class="badge badge-neon">● باز</span>' :
+      st==='TP1' ? '<span class="badge badge-green">TP1 ✓</span>' :
+      st==='TP2' ? '<span class="badge badge-green">TP2 ✓</span>' :
+      st==='TP3' ? '<span class="badge badge-green">TP3 🏆</span>' :
+      st==='SL' ? '<span class="badge badge-red">SL ✕</span>' :
+      '<span class="badge badge-gold">منقضی</span>';
+
+    return '<div class="sig-mini '+(s.direction||'').toLowerCase()+'">' +
+      '<div class="sig-mini-head"><span class="sig-sym">'+s.symbol+'</span>' +
+      '<span class="sig-dir '+(s.direction||'').toLowerCase()+'">'+(s.direction==='LONG'?'🟢':'🔴')+' '+s.direction+'</span></div>' +
+      '<div class="sig-mini-row"><span class="sig-mini-lbl">ورود</span><span class="sig-mini-val">'+fmtP(s.entry)+'</span></div>' +
+      '<div class="sig-mini-row"><span class="sig-mini-lbl">TP1</span><span class="sig-mini-val" style="color:var(--green)">'+fmtP(s.tp1)+'</span></div>' +
+      '<div class="sig-mini-row"><span class="sig-mini-lbl">SL</span><span class="sig-mini-val" style="color:var(--red)">'+fmtP(s.stop_loss)+'</span></div>' +
+      '<div class="sig-mini-row"><span class="sig-mini-lbl">وضعیت</span><span class="sig-mini-val">'+stBadge+'</span></div>' +
+      '<div style="font-size:.7rem;color:var(--text2);margin-top:.5rem;">امتیاز: '+sc+'/10 | '+(s.confidence||'')+'</div>' +
+      '<div class="sig-score-bar">'+Array.from({length:10},function(_,i){return '<div class="sseg '+(i<sc?'on':'')+'"></div>';}).join('')+'</div></div>';
+  }).join('');
 }
 
 function filterSigs(btn,f){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
   renderSignals(f);
 }
 
+/* ═══ USERS PAGE ═══ */
+async function loadUsersPage() {
+  const r = await api('/api/admin/users');
+  allUsers = r.data || [];
+  var tbody = document.getElementById('usersTable');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  allUsers.forEach(function(u, i) {
+    var planBadge = u.plan==='vip' ? '<span class="badge badge-gold">VIP</span>' :
+      u.plan==='pro' ? '<span class="badge badge-neon">حرفه‌ای</span>' :
+      u.plan==='trial' ? '<span class="badge badge-gray">تست</span>' :
+      '<span class="badge badge-blue">پایه</span>';
+    var stBadge = u.is_active ? '<span class="badge badge-green">● فعال</span>' : '<span class="badge badge-red">● غیرفعال</span>';
+    var tgBadge = u.telegram_chat_id ? '<span class="badge badge-green">✓ فعال</span>' : '<span class="badge badge-gray">✕</span>';
+    var smsBadge = u.sms_active ? '<span class="badge badge-green">✓ فعال</span>' : '<span class="badge badge-gray">✕</span>';
+
+    tbody.innerHTML += '<tr>'+
+      '<td style="color:var(--text2);">'+(i+1)+'</td>'+
+      '<td><b>'+(u.username||'?')+'</b></td>'+
+      '<td style="color:var(--text2);">'+(u.phone||'—')+'</td>'+
+      '<td>'+planBadge+'</td>'+
+      '<td>'+tgBadge+'</td>'+
+      '<td>'+smsBadge+'</td>'+
+      '<td>'+stBadge+'</td>'+
+      '<td style="color:var(--text2);">'+(u.plan_expires_at||'—').slice(0,10)+'</td>'+
+      '<td style="display:flex;gap:.4rem;">'+
+        '<button class="act-btn" onclick="openUserModal('+u.id+')">✏️</button>'+
+        '<button class="act-btn '+(u.is_active?'danger':'')+'" onclick="toggleUser('+u.id+')">'+(u.is_active?'🚫':'✅')+'</button>'+
+      '</td></tr>';
+  });
+}
+
+async function toggleUser(uid) {
+  await api('/api/admin/users/'+uid+'/toggle', {method:'POST'});
+  showToast('✅','وضعیت کاربر تغییر کرد','success');
+  loadUsersPage();
+  loadDashboard();
+}
+
+async function setPlan(uid, plan) {
+  await api('/api/admin/users/'+uid+'/plan', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan:plan})});
+  showToast('💎','پلن کاربر به '+plan+' تغییر کرد','success');
+  closeModal();
+  loadUsersPage();
+}
+
+/* ═══ WINRATE ═══ */
+async function loadWinrate() {
+  var r = await api('/api/stats');
+  var st = r.data || r.stats || {};
+  var el = document.querySelector('#page-winrate .stats-grid');
+  if(el) el.innerHTML =
+    '<div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-label">وین‌ریت TP1</div><div class="stat-value green">'+(st.winrate_tp1||0)+'%</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-label">وین‌ریت TP2</div><div class="stat-value green">'+(st.winrate_tp2||0)+'%</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">📊</div><div class="stat-label">میانگین R/R</div><div class="stat-value gold">'+(st.avg_rr||0)+'R</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">کل سیگنال</div><div class="stat-value neon">'+(st.total||0)+'</div></div>';
+
+  // by symbol
+  var bySymTbody = document.querySelector('#page-winrate .grid-2 .table-card:first-child tbody');
+  if(bySymTbody && st.by_symbol) {
+    bySymTbody.innerHTML = '';
+    for(var sym in st.by_symbol) {
+      var s = st.by_symbol[sym];
+      bySymTbody.innerHTML += '<tr><td><b>'+sym+'</b></td><td>'+s.total+'</td><td>'+s.tp1+'</td><td>'+(s.tp2||0)+'</td><td>'+s.sl+'</td><td><span class="badge '+(s.winrate>=70?'badge-green':'badge-gold')+'">'+s.winrate+'%</span></td></tr>';
+    }
+  }
+  // by direction
+  var byDirTbody = document.querySelector('#page-winrate .grid-2 .table-card:last-child tbody');
+  if(byDirTbody && st.by_direction) {
+    byDirTbody.innerHTML = '';
+    for(var dir in st.by_direction) {
+      var d = st.by_direction[dir];
+      var wr = d.total > 0 ? Math.round(d.wins/d.total*100) : 0;
+      byDirTbody.innerHTML += '<tr><td><span class="badge '+(dir==='LONG'?'badge-green':'badge-red')+'">'+(dir==='LONG'?'🟢':'🔴')+' '+dir+'</span></td><td>'+d.total+'</td><td>'+d.wins+'</td><td>'+(d.total-d.wins)+'</td><td><span class="badge '+(wr>=70?'badge-green':'badge-gold')+'">'+wr+'%</span></td></tr>';
+    }
+  }
+}
+
+/* ═══ SUBSCRIPTIONS ═══ */
+async function loadSubscriptions() {
+  var r = await api('/api/admin/stats');
+  var st = r.data || {};
+  var plans = st.plans || {};
+  var el = document.querySelector('#page-subscriptions .stats-grid');
+  if(el) el.innerHTML =
+    '<div class="stat-card"><div class="stat-icon">💎</div><div class="stat-label">VIP</div><div class="stat-value gold">'+(plans.vip||0)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-label">حرفه‌ای</div><div class="stat-value neon">'+(plans.pro||0)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">پایه</div><div class="stat-value" style="color:var(--blue);">'+(plans.basic||0)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-icon">🧪</div><div class="stat-label">تست</div><div class="stat-value" style="color:var(--text3);">'+(plans.trial||0)+'</div></div>';
+
+  var stbody = document.querySelector('#page-subscriptions tbody');
+  if(stbody) {
+    stbody.innerHTML = '';
+    allUsers.forEach(function(u) {
+      var planBadge = u.plan==='vip'?'<span class="badge badge-gold">VIP</span>':u.plan==='pro'?'<span class="badge badge-neon">حرفه‌ای</span>':'<span class="badge badge-blue">پایه</span>';
+      var stBadge = u.is_active?'<span class="badge badge-green">● فعال</span>':'<span class="badge badge-red">● غیرفعال</span>';
+      stbody.innerHTML += '<tr><td><b>'+(u.username||'?')+'</b></td><td>'+planBadge+'</td><td style="color:var(--text2);">'+(u.created_at||'').slice(0,10)+'</td><td style="color:var(--text2);">'+(u.plan_expires_at||'—').slice(0,10)+'</td><td>'+stBadge+'</td><td style="color:var(--gold);">'+({vip:'$99',pro:'$59',basic:'$29',trial:'رایگان'}[u.plan]||'—')+'</td></tr>';
+    });
+  }
+}
+
 /* ═══ CHARTS ═══ */
 function drawSparkline(id, data, color){
-  const canvas = document.getElementById(id);
+  var canvas = document.getElementById(id);
   if(!canvas) return;
-  canvas.width  = canvas.parentElement.offsetWidth - 48;
+  canvas.width = canvas.parentElement.offsetWidth - 48;
   canvas.height = 80;
-  const ctx = canvas.getContext('2d');
-  const w=canvas.width, h=canvas.height;
-  const max=Math.max(...data), min=Math.min(...data);
-  const pts = data.map((v,i)=>({
-    x: i*(w/(data.length-1)),
-    y: h - ((v-min)/(max-min))*(h-10)-5
-  }));
-  // gradient fill
-  const grad=ctx.createLinearGradient(0,0,0,h);
+  var ctx = canvas.getContext('2d');
+  var w=canvas.width, h=canvas.height;
+  var max=Math.max.apply(null,data), min=Math.min.apply(null,data);
+  var pts = data.map(function(v,i){ return {x:i*(w/(data.length-1)), y:h-((v-min)/(max-min))*(h-10)-5}; });
+  var grad=ctx.createLinearGradient(0,0,0,h);
   grad.addColorStop(0,color+'40'); grad.addColorStop(1,color+'00');
   ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-  pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+  pts.slice(1).forEach(function(p){ctx.lineTo(p.x,p.y);});
   ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
   ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
   ctx.fillStyle=grad; ctx.fill();
-  // dots
-  pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
+  pts.forEach(function(p){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
 }
-
-setTimeout(()=>{
-  drawSparkline('chart1',[8,12,7,15,10,18,12],'#00ffcc');
-  drawSparkline('chart2',[65,70,68,72,71,74,72],'#f7931a');
-},300);
 
 /* ═══ MODAL ═══ */
-function openUserModal(name){
-  document.getElementById('modalUserName').textContent = name;
-  document.getElementById('editName').value = name;
-  document.getElementById('editPhone').value = '09121234567';
-  document.getElementById('editTg').value = '123456789';
+var editingUserId = null;
+function openUserModal(uid){
+  editingUserId = uid;
+  var u = allUsers.find(function(u){return u.id===uid;});
+  if(!u) return;
+  document.getElementById('modalUserName').textContent = u.username||'?';
+  document.getElementById('editName').value = u.username||'';
+  document.getElementById('editPhone').value = u.phone||'';
+  document.getElementById('editTg').value = u.telegram_chat_id||'';
   document.getElementById('userModal').classList.add('open');
+
+  // update plan select
+  var planSel = document.querySelector('#userModal select');
+  if(planSel) planSel.value = u.plan==='vip'?'VIP ($99)':u.plan==='pro'?'حرفه‌ای ($59)':'پایه ($29)';
 }
-function closeModal(){ document.getElementById('userModal').classList.remove('open'); }
-function saveUser(){ closeModal(); showToast('✅','اطلاعات کاربر ذخیره شد','success'); }
+function closeModal(){ document.getElementById('userModal').classList.remove('open'); editingUserId=null; }
+
+async function saveUser(){
+  if(!editingUserId) { closeModal(); return; }
+  var planSel = document.querySelector('#userModal select');
+  var planVal = planSel ? planSel.value : '';
+  var plan = planVal.includes('VIP') ? 'vip' : planVal.includes('حرفه') ? 'pro' : 'basic';
+  await setPlan(editingUserId, plan);
+}
 
 /* ═══ TOAST ═══ */
-function showToast(icon, msg, type='success'){
-  const wrap = document.getElementById('toastWrap');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span class="t-ic">${icon}</span><span>${msg}</span>`;
+function showToast(icon, msg, type){
+  type = type || 'success';
+  var wrap = document.getElementById('toastWrap');
+  var t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = '<span class="t-ic">'+icon+'</span><span>'+msg+'</span>';
   wrap.appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(20px)'; t.style.transition='all .3s'; setTimeout(()=>t.remove(),300); },3000);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateY(20px)'; t.style.transition='all .3s'; setTimeout(function(){t.remove();},300); },3000);
 }
 
-/* ═══ GSAP ENTRANCE ═══ */
+/* ═══ INIT ═══ */
 gsap.from('.sidebar',{x:80,opacity:0,duration:.8,ease:'power3.out'});
 gsap.from('.topbar',{y:-40,opacity:0,duration:.6,ease:'power3.out'});
-gsap.from('.stat-card',{opacity:0,y:30,stagger:.08,duration:.6,ease:'power3.out',delay:.3});
 
-/* ═══ CLOSE MODAL ON OVERLAY ═══ */
+loadDashboard().then(function(){
+  gsap.from('.stat-card',{opacity:0,y:30,stagger:.08,duration:.6,ease:'power3.out'});
+  setTimeout(function(){
+    drawSparkline('chart1',[8,12,7,15,10,18,12],'#00ffcc');
+    drawSparkline('chart2',[65,70,68,72,71,74,72],'#f7931a');
+  },300);
+});
+
 document.getElementById('userModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+setInterval(loadDashboard, 120000);
 </script>
 </body>
 </html>

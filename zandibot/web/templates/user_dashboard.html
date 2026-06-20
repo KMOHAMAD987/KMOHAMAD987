@@ -78,6 +78,54 @@ body{font-family:'Vazirmatn','Segoe UI',Tahoma,sans-serif;background:var(--bg);c
   <div class="section-title">📜 آخرین معاملات</div>
   <div id="history"><div class="loading"></div></div>
 
+  <div class="section-title">👤 حساب من</div>
+  <div id="profile"><div class="loading"></div></div>
+
+  <div class="section-title">📱 اتصال تلگرام</div>
+  <div id="telegram-connect" class="signal-card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-weight:700">وضعیت اتصال</span>
+      <span id="tg-status" style="font-size:12px;padding:3px 10px;border-radius:8px;background:rgba(239,68,68,.15);color:var(--red)">غیرمتصل</span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Chat ID تلگرام خود را وارد کنید تا سیگنال‌ها مستقیماً به تلگرام شما ارسال شود.</p>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="tg-chatid" placeholder="مثلاً: 123456789" style="flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none" dir="ltr">
+      <button onclick="saveTelegram()" style="background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">ذخیره</button>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px">💡 برای یافتن Chat ID، به ربات <b>@userinfobot</b> در تلگرام پیام دهید.</p>
+  </div>
+
+  <div class="section-title">💎 اشتراک</div>
+  <div id="subscription" class="signal-card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-weight:700">پلن فعلی</span>
+      <span id="plan-badge" style="font-size:12px;padding:3px 10px;border-radius:8px;background:rgba(59,130,246,.15);color:var(--blue);font-weight:700">—</span>
+    </div>
+    <div id="plan-info" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-weight:700;font-size:14px;color:var(--blue)">پایه</div>
+        <div style="font-size:18px;font-weight:900;color:var(--text);margin:6px 0">$29</div>
+        <div style="font-size:11px;color:var(--muted)">ماهانه</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">۵ ارز | TP1 اطلاع‌رسانی</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;text-align:center;position:relative">
+        <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:10px;font-weight:700;padding:1px 8px;border-radius:4px">محبوب</div>
+        <div style="font-weight:700;font-size:14px;color:var(--green)">حرفه‌ای</div>
+        <div style="font-size:18px;font-weight:900;color:var(--text);margin:6px 0">$59</div>
+        <div style="font-size:11px;color:var(--muted)">ماهانه</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">۸ ارز | همه TP + SL</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(247,147,26,.3);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-weight:700;font-size:14px;color:#f7931a">VIP</div>
+        <div style="font-size:18px;font-weight:900;color:var(--text);margin:6px 0">$99</div>
+        <div style="font-size:11px;color:var(--muted)">ماهانه</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">نامحدود | اختصاصی</div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center">برای ارتقای پلن با پشتیبانی تماس بگیرید: <b>@ZandiBotSupport</b></p>
+  </div>
+
   <div class="refresh-note">🔄 بروزرسانی خودکار هر ۶۰ ثانیه</div>
 </div>
 
@@ -184,11 +232,59 @@ async function loadHistory() {
   });
 }
 
+async function loadProfile() {
+  var d = await fetchJSON('/api/me');
+  var el = document.getElementById('profile');
+  if (!d.ok) { el.innerHTML = '<div class="empty">وارد حساب خود شوید</div>'; return; }
+  var u = d.data;
+  var planMap = {vip:'💎 VIP', pro:'⚡ حرفه‌ای', basic:'📦 پایه', trial:'🧪 تست'};
+  el.innerHTML = '<div class="signal-card" style="padding:16px">' +
+    '<div class="signal-row"><span>👤 نام کاربری</span><span>' + (u.username||'—') + '</span></div>' +
+    '<div class="signal-row"><span>📱 تلفن</span><span dir="ltr">' + (u.phone||'—') + '</span></div>' +
+    '<div class="signal-row"><span>💎 پلن</span><span>' + (planMap[u.plan]||u.plan) + '</span></div>' +
+    (u.days_left !== undefined ? '<div class="signal-row"><span>⏳ باقی‌مانده</span><span>' + u.days_left + ' روز</span></div>' : '') +
+    (u.expired ? '<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:8px;border-radius:8px;margin-top:8px;font-size:12px;text-align:center">⚠️ اشتراک شما منقضی شده است</div>' : '') +
+    '</div>';
+
+  // Telegram status
+  if (u.telegram_chat_id) {
+    document.getElementById('tg-status').textContent = '✅ متصل';
+    document.getElementById('tg-status').style.background = 'rgba(34,197,94,.15)';
+    document.getElementById('tg-status').style.color = 'var(--green)';
+    document.getElementById('tg-chatid').value = u.telegram_chat_id;
+  }
+
+  // Plan badge
+  var planBadge = document.getElementById('plan-badge');
+  if (planBadge) {
+    planBadge.textContent = planMap[u.plan] || u.plan;
+    if(u.plan==='vip') { planBadge.style.background='rgba(247,147,26,.15)'; planBadge.style.color='#f7931a'; }
+    else if(u.plan==='pro') { planBadge.style.background='rgba(34,197,94,.15)'; planBadge.style.color='var(--green)'; }
+  }
+  var planInfo = document.getElementById('plan-info');
+  if (planInfo && u.days_left !== undefined) {
+    planInfo.textContent = u.days_left + ' روز تا پایان اشتراک';
+  }
+}
+
+async function saveTelegram() {
+  var chatId = document.getElementById('tg-chatid').value.trim();
+  if (!chatId) return;
+  var r = await fetchJSON('/api/me/update');
+  r = await fetch(API + '/api/me/update', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({telegram_chat_id: chatId})});
+  var d = await r.json();
+  if (d.ok) {
+    document.getElementById('tg-status').textContent = '✅ متصل';
+    document.getElementById('tg-status').style.background = 'rgba(34,197,94,.15)';
+    document.getElementById('tg-status').style.color = 'var(--green)';
+  }
+}
+
 if (window.Telegram && Telegram.WebApp) {
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
 }
-loadStats(); loadPrices(); loadSignals(); loadHistory();
+loadStats(); loadPrices(); loadSignals(); loadHistory(); loadProfile();
 setInterval(function() { loadPrices(); loadSignals(); loadStats(); }, 60000);
 </script>
 </body>
