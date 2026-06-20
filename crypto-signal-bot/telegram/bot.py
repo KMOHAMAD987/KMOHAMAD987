@@ -142,6 +142,7 @@ def fmt_signal(sig):
         f"📊 R/R: <code>{sig.get('rr')}R</code>  {ce} <b>{sig.get('confidence')}</b>\n"
         f"🎯 امتیاز: <code>{sc}/10</code>  [{bar}]\n"
         f"📈 احتمال: <code>{sig.get('probability', 0)}%</code>\n"
+        f"🔗 لوریج: <code>{sig.get('leverage', 5)}x</code>\n"
     )
 
 def fmt_welcome(name, adm):
