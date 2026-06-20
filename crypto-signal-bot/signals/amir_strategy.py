@@ -256,7 +256,7 @@ def _score_coin(s4h, s1h, s15m, s5m, btc_bias, direction) -> tuple:
         reasons.append(f"⚠️ ADX متوسط ({adx:.0f})")
     else:
         score -= 0.5
-        reasons.append(f"⛔ ADX ضعیف ({adx:.0f if adx else 0}) — بازار رنج")
+        reasons.append("⛔ ADX ضعیف ({}) — بازار رنج".format(int(adx) if adx else 0))
 
     # ── ۴. BOS/CHOCH (1.5 امتیاز) ──
     bos_ok = (s15m["bos"]["bos_bullish"] or s5m["bos"]["bos_bullish"]) if is_long else \
