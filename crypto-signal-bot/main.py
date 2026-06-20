@@ -131,11 +131,11 @@ def scan_symbol(symbol: str, btc_bias: str) -> None:
 
     # فیلتر سیگنال
     if signal.direction == "NO_SIGNAL":
-        print(f"  ➖ {symbol}: بدون سیگنال (امتیاز {signal.score}/11)")
+        print(f"  ➖ {symbol}: بدون سیگنال (امتیاز {signal.score}/10)")
         return
 
     if signal.score < MIN_SCORE:
-        print(f"  ➖ {symbol}: امتیاز کم ({signal.score}/11)")
+        print(f"  ➖ {symbol}: امتیاز کم ({signal.score}/10)")
         return
 
     if signal.rr < MIN_RR:
@@ -245,7 +245,7 @@ def track_loop() -> None:
 def main():
     print("🤖 ربات سیگنال سبک امیر شروع شد")
     print(f"📊 نمادها: {', '.join(SYMBOLS)}")
-    print(f"⚙️  حداقل امتیاز: {MIN_SCORE}/11")
+    print(f"⚙️  حداقل امتیاز: {MIN_SCORE}/10")
     print(f"⚙️  حداقل R/R: {MIN_RR}")
     print(f"⚙️  حداقل کانفیدنس: {MIN_CONFIDENCE}")
     print(f"⏱  فاصله اسکن: {SCAN_INTERVAL // 60} دقیقه")
@@ -254,7 +254,7 @@ def main():
     send_message(
         "🤖 *ربات سیگنال سبک امیر شروع شد*\n\n"
         f"📊 نمادها: `{' | '.join(SYMBOLS)}`\n"
-        f"⚙️ حداقل امتیاز: `{MIN_SCORE}/11`\n"
+        f"⚙️ حداقل امتیاز: `{MIN_SCORE}/10`\n"
         f"⚙️ حداقل R/R: `{MIN_RR}`\n"
         f"⏱ اسکن هر: `{SCAN_INTERVAL // 60} دقیقه`\n\n"
         "دستورات:\n"

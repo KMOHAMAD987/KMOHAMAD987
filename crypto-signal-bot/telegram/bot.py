@@ -290,10 +290,39 @@ def handle_cb(chat_id, cb_id, data, msg_id, user_d):
         answer_cb(cb_id, "...")
         users = load_users()
         text = f"👥 <b>کاربران ({len(users)}):</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        rows = []
         for uid, u in list(users.items())[:10]:
             st = "✅" if u.get("active") else "⏳"
             text += f"{st} <b>{u.get('first_name','?')}</b> | {u.get('plan','?')} | <code>{uid}</code>\n"
-        edit_msg(chat_id, msg_id, text, kb_back("admin_panel"))
+            rows.append([{"text": f"{'✅' if u.get('active') else '❌'} {u.get('first_name','?')}", "callback_data": f"user_detail_{uid}"}])
+        rows.append([{"text": "◀️ بازگشت", "callback_data": "admin_panel"}])
+        edit_msg(chat_id, msg_id, text, {"inline_keyboard": rows})
+
+    elif data.startswith("user_detail_"):
+        if not adm:
+            answer_cb(cb_id, "⛔", alert=True); return
+        uid = data[len("user_detail_"):]
+        answer_cb(cb_id)
+        users = load_users()
+        u = users.get(uid, {})
+        st = "✅ فعال" if u.get("active") else "❌ غیرفعال"
+        text = (
+            f"👤 <b>{u.get('first_name', '?')}</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"🆔 <code>{uid}</code>\n"
+            f"📛 @{u.get('username', '—')}\n"
+            f"📦 پلن: <b>{u.get('plan', 'trial')}</b>\n"
+            f"وضعیت: <b>{st}</b>\n"
+            f"📅 عضویت: <code>{u.get('joined_at', '—')}</code>\n"
+        )
+        kb = {"inline_keyboard": [
+            [{"text": "✅ فعال", "callback_data": f"activate_{uid}"},
+             {"text": "❌ غیرفعال", "callback_data": f"deactivate_{uid}"}],
+            [{"text": "💎 VIP", "callback_data": f"plan_vip_{uid}"},
+             {"text": "⚡ حرفه‌ای", "callback_data": f"plan_pro_{uid}"},
+             {"text": "📦 پایه", "callback_data": f"plan_basic_{uid}"}],
+            [{"text": "◀️ بازگشت", "callback_data": "admin_users"}],
+        ]}
+        edit_msg(chat_id, msg_id, text, kb)
 
     elif data == "admin_stats":
         if not adm:
@@ -325,7 +354,7 @@ def handle_cb(chat_id, cb_id, data, msg_id, user_d):
         text = f"🎯 <b>سیگنال‌های باز: {len(sigs)}</b>\n━━━━━━━━━━━━━━━━━━━━\n\n"
         for s in sigs[:5]:
             d = "🟢" if s.get("direction")=="LONG" else "🔴"
-            text += f"{d} <b>{s.get('symbol')}</b> | <code>{s.get('entry')}</code> | {s.get('score',0)}/11\n"
+            text += f"{d} <b>{s.get('symbol')}</b> | <code>{s.get('entry')}</code> | {s.get('score',0)}/10\n"
         edit_msg(chat_id, msg_id, text, kb_back("admin_panel"))
 
     elif data == "admin_restart":
@@ -418,6 +447,7 @@ def broadcast_tp_sl(trade, hit):
         f"{emoji} <b>{hit} زده شد!</b>\n\n"
         f"🪙 <b>{trade.get('symbol')}</b> | {trade.get('direction')}\n"
         f"📍 ورود: <code>{entry}</code>\n"
+        f"🎯 قیمت تارگت: <code>{exit_p}</code>\n"
         f"💰 نتیجه: <code>{pnl_str}</code>\n"
     )
 

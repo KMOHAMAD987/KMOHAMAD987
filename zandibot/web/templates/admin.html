@@ -570,11 +570,11 @@ canvas.sparkline{width:100%;height:80px;}
             </tr>
           </thead>
           <tbody id="recentSignals">
-            <tr><td><b>BTCUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>9/11</td><td>105,250</td><td><span class="badge badge-neon">● باز</span></td><td style="color:var(--text2);">۱۵ دقیقه پیش</td></tr>
-            <tr><td><b>ETHUSDT</b></td><td><span class="badge badge-red">🔴 SHORT</span></td><td>7/11</td><td>3,842</td><td><span class="badge badge-green">TP1 ✓</span></td><td style="color:var(--text2);">۱ ساعت پیش</td></tr>
-            <tr><td><b>SOLUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>8/11</td><td>184.2</td><td><span class="badge badge-green">TP2 ✓</span></td><td style="color:var(--text2);">۳ ساعت پیش</td></tr>
-            <tr><td><b>BNBUSDT</b></td><td><span class="badge badge-red">🔴 SHORT</span></td><td>6/11</td><td>641</td><td><span class="badge badge-red">SL ✕</span></td><td style="color:var(--text2);">۵ ساعت پیش</td></tr>
-            <tr><td><b>XRPUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>7/11</td><td>0.838</td><td><span class="badge badge-gold">منقضی</span></td><td style="color:var(--text2);">۸ ساعت پیش</td></tr>
+            <tr><td><b>BTCUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>9/10</td><td>105,250</td><td><span class="badge badge-neon">● باز</span></td><td style="color:var(--text2);">۱۵ دقیقه پیش</td></tr>
+            <tr><td><b>ETHUSDT</b></td><td><span class="badge badge-red">🔴 SHORT</span></td><td>7/10</td><td>3,842</td><td><span class="badge badge-green">TP1 ✓</span></td><td style="color:var(--text2);">۱ ساعت پیش</td></tr>
+            <tr><td><b>SOLUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>8/10</td><td>184.2</td><td><span class="badge badge-green">TP2 ✓</span></td><td style="color:var(--text2);">۳ ساعت پیش</td></tr>
+            <tr><td><b>BNBUSDT</b></td><td><span class="badge badge-red">🔴 SHORT</span></td><td>6/10</td><td>641</td><td><span class="badge badge-red">SL ✕</span></td><td style="color:var(--text2);">۵ ساعت پیش</td></tr>
+            <tr><td><b>XRPUSDT</b></td><td><span class="badge badge-green">🟢 LONG</span></td><td>7/10</td><td>0.838</td><td><span class="badge badge-gold">منقضی</span></td><td style="color:var(--text2);">۸ ساعت پیش</td></tr>
           </tbody>
         </table>
       </div>
@@ -724,7 +724,7 @@ canvas.sparkline{width:100%;height:80px;}
           </div>
           <div class="form-group">
             <label class="form-label">حداقل امتیاز سیگنال</label>
-            <input type="number" class="form-input" value="6" min="1" max="11">
+            <input type="number" class="form-input" value="6" min="1" max="10">
           </div>
           <div class="form-group">
             <label class="form-label">حداقل R/R</label>
@@ -815,7 +815,7 @@ canvas.sparkline{width:100%;height:80px;}
 {symbol} | {direction}
 ورود: {entry}
 TP1: {tp1} | SL: {sl}
-امتیاز: {score}/11</textarea>
+امتیاز: {score}/10</textarea>
           </div>
           <div style="display:flex;gap:.6rem;margin-top:.5rem;">
             <button class="tb-btn" onclick="showToast('📱','پیامک تست ارسال شد','success')" style="flex:1;">تست ارسال</button>
@@ -1015,9 +1015,9 @@ function renderSignals(filter){
       <div class="sig-mini-row"><span class="sig-mini-lbl">TP1</span><span class="sig-mini-val" style="color:var(--green)">${s.tp1.toLocaleString()}</span></div>
       <div class="sig-mini-row"><span class="sig-mini-lbl">SL</span><span class="sig-mini-val" style="color:var(--red)">${s.sl.toLocaleString()}</span></div>
       <div class="sig-mini-row"><span class="sig-mini-lbl">وضعیت</span><span class="sig-mini-val">${statusBadge(s.status)}</span></div>
-      <div style="font-size:.7rem;color:var(--text2);margin-top:.5rem;">امتیاز: ${s.score}/11</div>
+      <div style="font-size:.7rem;color:var(--text2);margin-top:.5rem;">امتیاز: ${s.score}/10</div>
       <div class="sig-score-bar">
-        ${Array.from({length:11},(_,i)=>`<div class="sseg ${i<s.score?'on':''}"></div>`).join('')}
+        ${Array.from({length:10},(_,i)=>`<div class="sseg ${i<s.score?'on':''}"></div>`).join('')}
       </div>
     </div>
   `).join('');
