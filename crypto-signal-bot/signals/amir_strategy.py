@@ -15,6 +15,12 @@ from analysis.indicators import compute_indicators
 from analysis.vwap import compute_vwap
 from analysis.structure import compute_structure
 
+try:
+    from data.hyperliquid_client import get_funding_direction_score
+    HAS_HYPERLIQUID = True
+except ImportError:
+    HAS_HYPERLIQUID = False
+
 # ─────────────────────────────────────────
 # ارزهای مجاز
 # ─────────────────────────────────────────
@@ -540,6 +546,19 @@ def analyze(
         return _no(symbol, price, "BTC شدیداً نزولی — لانگ ممنوع")
     if btc_bias == "bullish" and direction == "SHORT" and btc_score > 7:
         return _no(symbol, price, "BTC شدیداً صعودی — شورت ممنوع")
+
+    # ── Hyperliquid Funding Rate ──
+    if HAS_HYPERLIQUID:
+        try:
+            hl_adj, hl_reason = get_funding_direction_score(symbol, direction)
+            score = round(score + hl_adj, 1)
+            score = max(0.0, min(10.0, score))
+            reasons.append(hl_reason)
+        except:
+            pass
+
+    if score < MIN_SCORE:
+        return _no(symbol, price, f"نمره بعد از Funding: {score}/10", reasons)
 
     # ── کانفیدنس ──
     if score >= 8.5:   conf = "HIGH"
