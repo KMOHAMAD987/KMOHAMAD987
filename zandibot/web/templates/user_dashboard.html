@@ -4,54 +4,63 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZandiBot — داشبورد</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0a0e17;--card:#131a2b;--border:#1e2a42;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#e2e8f0;--muted:#64748b}
-body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.container{max-width:480px;margin:0 auto;padding:16px}
+:root{--bg:#0a0e17;--card:#131a2b;--border:#1e2a42;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f7931a;--text:#e2e8f0;--muted:#64748b}
+body{font-family:'Vazirmatn','Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:520px;margin:0 auto;padding:16px}
 .header{text-align:center;padding:20px 0 12px}
-.header h1{font-size:22px;background:linear-gradient(135deg,var(--blue),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header h1{font-size:24px;font-weight:900;background:linear-gradient(135deg,var(--orange),#ffb830);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .header p{color:var(--muted);font-size:13px;margin-top:4px}
 .stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
-.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
-.stat-box .val{font-size:20px;font-weight:700;color:var(--blue)}
-.stat-box .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center}
+.stat-box .val{font-size:22px;font-weight:700;color:var(--blue)}
+.stat-box .lbl{font-size:11px;color:var(--muted);margin-top:4px}
 .stat-box.green .val{color:var(--green)}
 .stat-box.red .val{color:var(--red)}
 
 .prices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
 .price-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
-.price-card .sym{font-weight:600;font-size:13px}
-.price-card .pr{font-size:13px;font-weight:600}
-.price-card .ch{font-size:11px;padding:2px 6px;border-radius:6px}
+.price-card .sym{font-weight:700;font-size:13px}
+.price-card .pr{font-size:13px;font-weight:600;direction:ltr}
+.price-card .ch{font-size:11px;padding:2px 6px;border-radius:6px;direction:ltr}
 .ch.up{background:rgba(34,197,94,.15);color:var(--green)}
 .ch.dn{background:rgba(239,68,68,.15);color:var(--red)}
 
-.section-title{font-size:15px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;gap:6px}
+.section-title{font-size:15px;font-weight:700;margin:18px 0 8px;display:flex;align-items:center;gap:6px}
 
 .signal-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
-.signal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.signal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .signal-sym{font-size:16px;font-weight:700}
-.signal-dir{font-size:12px;padding:3px 10px;border-radius:8px;font-weight:600}
+.signal-dir{font-size:12px;padding:4px 12px;border-radius:8px;font-weight:700}
 .signal-dir.long{background:rgba(34,197,94,.15);color:var(--green)}
 .signal-dir.short{background:rgba(239,68,68,.15);color:var(--red)}
-.signal-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--muted)}
-.signal-row span:last-child{color:var(--text);font-weight:500;direction:ltr}
-.score-bar{height:6px;background:#1e293b;border-radius:3px;margin-top:6px;overflow:hidden}
+.signal-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.03)}
+.signal-row:last-of-type{border-bottom:none}
+.signal-row span:last-child{color:var(--text);font-weight:600;direction:ltr}
+.score-bar{height:6px;background:#1e293b;border-radius:3px;margin-top:8px;overflow:hidden}
 .score-fill{height:100%;border-radius:3px;transition:width .5s}
 
+.history-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.history-card .info{display:flex;flex-direction:column;gap:2px}
+.history-card .sym{font-weight:700;font-size:14px}
+.history-card .meta{font-size:11px;color:var(--muted)}
+.history-card .result{text-align:left;font-weight:700;font-size:13px}
+
 .empty{text-align:center;padding:40px 0;color:var(--muted);font-size:14px}
-.loading{text-align:center;padding:60px 0;color:var(--muted)}
-.loading::after{content:'';display:block;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;margin:12px auto;animation:spin 1s linear infinite}
+.loading{text-align:center;padding:40px 0;color:var(--muted)}
+.loading::after{content:'';display:block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;margin:12px auto;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.refresh-note{text-align:center;font-size:11px;color:var(--muted);margin-top:16px;padding-bottom:20px}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <h1>⚡ ZandiBot</h1>
-    <p>داشبورد سیگنال‌های کریپتو</p>
+    <p>داشبورد سیگنال‌های کریپتو — داده‌های لحظه‌ای</p>
   </div>
 
   <div class="stats-row" id="stats">
@@ -60,6 +69,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
     <div class="stat-box"><div class="val" id="st-rr">-</div><div class="lbl">میانگین R/R</div></div>
   </div>
 
+  <div class="section-title">💰 قیمت لحظه‌ای</div>
   <div class="prices" id="prices"><div class="loading"></div></div>
 
   <div class="section-title">🎯 سیگنال‌های باز</div>
@@ -67,17 +77,21 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 
   <div class="section-title">📜 آخرین معاملات</div>
   <div id="history"><div class="loading"></div></div>
+
+  <div class="refresh-note">🔄 بروزرسانی خودکار هر ۶۰ ثانیه</div>
 </div>
 
 <script>
 const API = window.location.origin;
 
 async function fetchJSON(url) {
-  try { const r = await fetch(API + url); return await r.json(); }
+  try { const r = await fetch(API + url); const j = await r.json(); return j; }
   catch(e) { return {ok:false}; }
 }
 
 function fmtPrice(p) {
+  if (!p) return '0';
+  p = parseFloat(p);
   if (p >= 1000) return p.toLocaleString('en', {maximumFractionDigits:2});
   if (p >= 1) return p.toFixed(3);
   return p.toFixed(6);
@@ -86,81 +100,96 @@ function fmtPrice(p) {
 async function loadStats() {
   const d = await fetchJSON('/api/stats');
   if (!d.ok) return;
-  const s = d.stats;
+  const s = d.data || d.stats || {};
   document.getElementById('st-total').textContent = s.total || 0;
   document.getElementById('st-winrate').textContent = (s.winrate_tp1 || 0) + '%';
   document.getElementById('st-rr').textContent = (s.avg_rr || 0) + 'R';
 }
 
 async function loadPrices() {
-  const d = await fetchJSON('/api/prices');
   const el = document.getElementById('prices');
-  if (!d.ok) { el.innerHTML = '<div class="empty">خطا در دریافت قیمت</div>'; return; }
-  el.innerHTML = '';
-  for (const [sym, info] of Object.entries(d.prices)) {
-    const up = info.change >= 0;
-    el.innerHTML += `<div class="price-card">
-      <div><div class="sym">${sym.replace('USDT','')}</div></div>
-      <div style="text-align:left"><div class="pr">$${fmtPrice(info.price)}</div>
-      <div class="ch ${up?'up':'dn'}">${up?'+':''}${info.change.toFixed(2)}%</div></div>
-    </div>`;
+  try {
+    const symbols = ['bitcoin','ethereum','solana','binancecoin','ripple'];
+    const names = {'bitcoin':'BTC','ethereum':'ETH','solana':'SOL','binancecoin':'BNB','ripple':'XRP'};
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+symbols.join(',')+'&vs_currencies=usd&include_24hr_change=true');
+    const data = await r.json();
+    el.innerHTML = '';
+    for (const [id, info] of Object.entries(data)) {
+      const sym = names[id] || id;
+      const price = info.usd;
+      const change = info.usd_24h_change || 0;
+      const up = change >= 0;
+      el.innerHTML += '<div class="price-card">' +
+        '<div><div class="sym">' + sym + '</div></div>' +
+        '<div style="text-align:left"><div class="pr">$' + fmtPrice(price) + '</div>' +
+        '<div class="ch ' + (up?'up':'dn') + '">' + (up?'+':'') + change.toFixed(2) + '%</div></div></div>';
+    }
+  } catch(e) {
+    el.innerHTML = '<div class="empty">خطا در دریافت قیمت</div>';
   }
 }
 
 async function loadSignals() {
-  const d = await fetchJSON('/api/signals');
+  const d = await fetchJSON('/api/signals/open');
   const el = document.getElementById('signals');
-  if (!d.ok || !d.signals.length) { el.innerHTML = '<div class="empty">📭 سیگنال باز فعالی وجود ندارد</div>'; return; }
+  const signals = d.data || d.signals || [];
+  if (!d.ok || !signals.length) {
+    el.innerHTML = '<div class="empty">📭 سیگنال باز فعالی وجود ندارد<br><small style="color:var(--muted)">اسکن هر ۱۵ دقیقه انجام می‌شود</small></div>';
+    return;
+  }
   el.innerHTML = '';
-  d.signals.forEach(s => {
-    const isLong = s.direction === 'LONG';
-    const sc = s.score || 0;
-    const pct = (sc / 10 * 100);
-    const color = sc >= 8 ? 'var(--green)' : sc >= 6 ? 'var(--yellow)' : 'var(--red)';
-    el.innerHTML += `<div class="signal-card">
-      <div class="signal-head">
-        <span class="signal-sym">${s.symbol}</span>
-        <span class="signal-dir ${isLong?'long':'short'}">${s.direction}</span>
-      </div>
-      <div class="signal-row"><span>ورود</span><span>${fmtPrice(s.entry)}</span></div>
-      <div class="signal-row"><span>استاپ‌لاس</span><span>${fmtPrice(s.stop_loss)}</span></div>
-      <div class="signal-row"><span>TP1</span><span>${fmtPrice(s.tp1)}</span></div>
-      <div class="signal-row"><span>TP2</span><span>${fmtPrice(s.tp2)}</span></div>
-      <div class="signal-row"><span>TP3</span><span>${fmtPrice(s.tp3)}</span></div>
-      <div class="signal-row"><span>امتیاز</span><span>${sc}/10 | ${s.confidence}</span></div>
-      <div class="signal-row"><span>R/R</span><span>${s.rr}R</span></div>
-      <div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${color}"></div></div>
-    </div>`;
+  signals.forEach(function(s) {
+    var isLong = s.direction === 'LONG';
+    var sc = s.score || 0;
+    var pct = (sc / 10 * 100);
+    var color = sc >= 8 ? 'var(--green)' : sc >= 6 ? 'var(--yellow)' : 'var(--red)';
+    el.innerHTML += '<div class="signal-card">' +
+      '<div class="signal-head">' +
+        '<span class="signal-sym">' + s.symbol + '</span>' +
+        '<span class="signal-dir ' + (isLong?'long':'short') + '">' + s.direction + '</span>' +
+      '</div>' +
+      '<div class="signal-row"><span>💰 ورود</span><span>' + fmtPrice(s.entry) + '</span></div>' +
+      '<div class="signal-row"><span>🔴 استاپ‌لاس</span><span>' + fmtPrice(s.stop_loss) + '</span></div>' +
+      '<div class="signal-row"><span>🟡 TP1</span><span>' + fmtPrice(s.tp1) + '</span></div>' +
+      '<div class="signal-row"><span>🟠 TP2</span><span>' + fmtPrice(s.tp2) + '</span></div>' +
+      '<div class="signal-row"><span>🟢 TP3</span><span>' + fmtPrice(s.tp3) + '</span></div>' +
+      '<div class="signal-row"><span>📊 امتیاز</span><span>' + sc + '/10 | ' + (s.confidence||'') + '</span></div>' +
+      '<div class="signal-row"><span>📈 R/R</span><span>' + (s.rr||0) + 'R</span></div>' +
+      '<div class="score-bar"><div class="score-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+    '</div>';
   });
 }
 
 async function loadHistory() {
-  const d = await fetchJSON('/api/trades?limit=10');
+  const d = await fetchJSON('/api/trades/history?limit=10');
   const el = document.getElementById('history');
-  if (!d.ok || !d.trades.length) { el.innerHTML = '<div class="empty">هنوز معامله‌ای ثبت نشده</div>'; return; }
+  var trades = d.data || d.trades || [];
+  if (!d.ok || !trades.length) {
+    el.innerHTML = '<div class="empty">هنوز معامله‌ای بسته نشده</div>';
+    return;
+  }
   el.innerHTML = '';
-  d.trades.forEach(t => {
+  trades.forEach(function(t) {
     if (t.status === 'OPEN') return;
-    const isWin = t.hit_tp1;
-    const st = {'TP1':'🟡 TP1','TP2':'🟠 TP2','TP3':'🏆 TP3','SL':'❌ SL','EXPIRED':'⏳ منقضی'}[t.status] || t.status;
-    const pnl = t.pnl_r > 0 ? `+${t.pnl_r}R` : `${t.pnl_r}R`;
-    el.innerHTML += `<div class="signal-card" style="padding:10px 14px">
-      <div class="signal-head">
-        <span class="signal-sym" style="font-size:14px">${t.symbol}</span>
-        <span style="font-size:12px">${st} <b style="color:${t.pnl_r>=0?'var(--green)':'var(--red)'}"> ${pnl}</b></span>
-      </div>
-      <div class="signal-row"><span>ورود: ${fmtPrice(t.entry)}</span><span>${t.direction} | ${t.score}/10</span></div>
-    </div>`;
+    var stMap = {'TP1':'🟡 TP1','TP2':'🟠 TP2','TP3':'🏆 TP3','SL':'❌ SL','EXPIRED':'⏳ منقضی'};
+    var st = stMap[t.status] || t.status;
+    var pnl = t.pnl_r > 0 ? '+' + t.pnl_r + 'R' : t.pnl_r + 'R';
+    var pnlColor = t.pnl_r >= 0 ? 'var(--green)' : 'var(--red)';
+    var dir = t.direction === 'LONG' ? '🟢' : '🔴';
+    el.innerHTML += '<div class="history-card">' +
+      '<div class="info"><span class="sym">' + dir + ' ' + t.symbol + '</span>' +
+      '<span class="meta">ورود: ' + fmtPrice(t.entry) + ' | ' + (t.score||0) + '/10</span></div>' +
+      '<div class="result"><div>' + st + '</div>' +
+      '<div style="color:' + pnlColor + '">' + pnl + '</div></div></div>';
   });
 }
 
-// init
 if (window.Telegram && Telegram.WebApp) {
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
 }
 loadStats(); loadPrices(); loadSignals(); loadHistory();
-setInterval(() => { loadPrices(); loadSignals(); }, 60000);
+setInterval(function() { loadPrices(); loadSignals(); loadStats(); }, 60000);
 </script>
 </body>
 </html>
