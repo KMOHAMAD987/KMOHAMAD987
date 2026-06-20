@@ -80,6 +80,7 @@ def kb_main(adm):
         [{"text":"📈 آمار کلی","callback_data":"global_stats"},
          {"text":"❓ راهنما","callback_data":"help"}],
     ]
+    rows.append([{"text":"🌐 داشبورد وب","web_app":{"url":"https://zandibot.it.com/dashboard"}}])
     if adm:
         rows.append([{"text":"👑 پنل ادمین","callback_data":"admin_panel"}])
     return {"inline_keyboard": rows}
@@ -150,7 +151,7 @@ def fmt_welcome(name, adm):
         f"سلام <b>{name}</b> عزیز!\n"
         f"نقش: {role}\n\n"
         f"🤖 دستیار هوشمند سیگنال‌دهی کریپتو\n"
-        f"📊 تحلیل ۴ تایم‌فریم | ۱۱ شرط تأیید\n"
+        f"📊 تحلیل ۴ تایم‌فریم | ۱۰ شرط تأیید\n"
         f"🎯 وین‌ریت TP1: <b>۷۲%</b> | R/R: <b>2.5</b>\n\n"
         f"از منوی زیر انتخاب کنید 👇"
     )

@@ -63,7 +63,7 @@ def _save_cooldown(cd: dict):
 # دریافت داده چند تایم‌فریم
 # ─────────────────────────────────────────
 
-def fetch_all_timeframes(symbol: str) -> dict | None:
+def fetch_all_timeframes(symbol: str):
     """دریافت کندل‌های ۴H، ۱H، ۱۵m، ۵m"""
     try:
         return {
@@ -77,7 +77,7 @@ def fetch_all_timeframes(symbol: str) -> dict | None:
         return None
 
 
-def get_btc_bias() -> tuple:
+def get_btc_bias():
     """تحلیل کامل BTC — نمره و بایاس"""
     try:
         from signals.amir_strategy import analyze_btc
@@ -94,7 +94,7 @@ def get_btc_bias() -> tuple:
 # اسکن یک نماد
 # ─────────────────────────────────────────
 
-def scan_symbol(symbol: str, btc_bias: str) -> None:
+def scan_symbol(symbol: str, btc_bias: str, btc_score: float = 5.0) -> None:
     """تحلیل کامل یک نماد و ارسال سیگنال اگه شرایط داشت"""
 
     # کولداون چک — از فایل می‌خونه (restart-safe)
@@ -216,7 +216,7 @@ def scan_loop() -> None:
 
         # اسکن همه نمادها
         for symbol in SYMBOLS:
-            scan_symbol(symbol, btc_bias)
+            scan_symbol(symbol, btc_bias, btc_score)
             time.sleep(2)  # فاصله بین درخواست‌ها
 
         print(f"\n⏰ اسکن بعدی: {SCAN_INTERVAL // 60} دقیقه دیگه")
