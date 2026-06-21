@@ -158,17 +158,28 @@ def update_trade(trade_id: str, current_price: float) -> Optional[str]:
     tp1       = t["tp1"]
     tp2       = t["tp2"]
     tp3       = t["tp3"]
-    risk      = abs(entry - sl)
+
+    # بعد از TP1 → SL میره روی ورود (breakeven)
+    # بعد از TP2 → SL میره روی TP1
+    if t["hit_tp2"]:
+        sl = tp1
+    elif t["hit_tp1"]:
+        sl = entry
 
     hit = None
 
     if direction == "LONG":
         if current_price <= sl:
-            hit = "SL"
-            t["hit_sl"]  = True
-            t["pnl_r"]   = -1.0
+            if t["hit_tp1"]:
+                # بعد TP1 اگه برگشت، breakeven بسته بشه نه ضرر
+                hit = "SL"
+                t["hit_sl"]  = True
+                t["pnl_r"]   = 0.0 if t["hit_tp1"] and not t["hit_tp2"] else 1.5
+            else:
+                hit = "SL"
+                t["hit_sl"]  = True
+                t["pnl_r"]   = -1.0
         else:
-            # اگه قیمت مستقیم از TP1 رد شده و به TP2 یا TP3 رسیده، همه رو mark کن
             if not t["hit_tp1"] and current_price >= tp1:
                 t["hit_tp1"] = True
                 t["pnl_r"]   = 1.5
@@ -187,9 +198,14 @@ def update_trade(trade_id: str, current_price: float) -> Optional[str]:
 
     elif direction == "SHORT":
         if current_price >= sl:
-            hit = "SL"
-            t["hit_sl"]  = True
-            t["pnl_r"]   = -1.0
+            if t["hit_tp1"]:
+                hit = "SL"
+                t["hit_sl"]  = True
+                t["pnl_r"]   = 0.0 if t["hit_tp1"] and not t["hit_tp2"] else 1.5
+            else:
+                hit = "SL"
+                t["hit_sl"]  = True
+                t["pnl_r"]   = -1.0
         else:
             if not t["hit_tp1"] and current_price <= tp1:
                 t["hit_tp1"] = True
@@ -365,9 +381,9 @@ def get_winrate_report() -> str:
 
 
 def get_open_trades() -> list:
-    """لیست معاملات باز"""
+    """لیست معاملات باز (شامل TP1/TP2 که هنوز بسته نشدن)"""
     db = _load_db()
-    return [t for t in db["trades"].values() if t["status"] == "OPEN"]
+    return [t for t in db["trades"].values() if t["status"] in ("OPEN", "TP1", "TP2")]
 
 
 def get_trade_by_id(trade_id: str) -> Optional[dict]:
