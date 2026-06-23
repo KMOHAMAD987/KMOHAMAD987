@@ -393,19 +393,43 @@ def get_trade_by_id(trade_id: str) -> Optional[dict]:
 
 
 def cleanup_test_trades():
-    """حذف trade‌های تست/فیک از DB"""
+    """حذف trade‌های با exit_price اشتباه (قیمت < 1 برای ارزهای بزرگ) و تست‌ها"""
     db = _load_db()
     to_remove = []
     for tid, t in db["trades"].items():
         entry = t.get("entry", 0)
+        exit_p = t.get("exit_price") or 0
+
+        # trade تست
         if entry == 65000.0 or entry == 3500.0:
             to_remove.append(tid)
+            continue
+
+        # exit_price اشتباه: مثلاً 0.16 برای ETH/BTC/SOL/BNB
+        if exit_p > 0 and entry > 10 and exit_p < 1:
+            to_remove.append(tid)
+            continue
+
+        # TP3 در کمتر از ۵ دقیقه — غیرممکن
+        opened = t.get("opened_at", "")
+        closed = t.get("closed_at", "")
+        if opened and closed and t.get("status") == "TP3":
+            try:
+                o = datetime.fromisoformat(opened)
+                c = datetime.fromisoformat(closed)
+                if (c - o).total_seconds() < 300:
+                    to_remove.append(tid)
+                    continue
+            except:
+                pass
+
     for tid in to_remove:
         del db["trades"][tid]
-        print(f"🗑️ Trade تست حذف شد: {tid}")
+        print(f"🗑️ Trade خراب حذف شد: {tid}")
     if to_remove:
         _recalc_stats(db)
         _save_db(db)
+        print(f"🧹 {len(to_remove)} trade خراب پاک شد")
     return len(to_remove)
 
 

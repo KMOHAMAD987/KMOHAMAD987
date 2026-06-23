@@ -183,8 +183,13 @@ def track_open_trades() -> None:
 
         try:
             ticker = get_ticker(symbol)
-            price  = float(ticker.get("lastPrice", 0))
-        except:
+            # فیلدهای احتمالی قیمت در API
+            price = float(ticker.get("lastPrice") or ticker.get("last") or ticker.get("markPrice") or ticker.get("close") or 0)
+            if price <= 0:
+                print(f"  ⚠️ {symbol}: قیمت نامعتبر از ticker: {ticker}")
+                continue
+        except Exception as e:
+            print(f"  ⚠️ {symbol}: خطا در دریافت قیمت: {e}")
             continue
 
         hit = update_trade(tid, price)
@@ -244,6 +249,17 @@ def track_loop() -> None:
 # ─────────────────────────────────────────
 
 def main():
+    # جلوگیری از اجرای هم‌زمان
+    import fcntl
+    lock_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/.bot.lock")
+    os.makedirs(os.path.dirname(lock_file), exist_ok=True)
+    lock_fp = open(lock_file, "w")
+    try:
+        fcntl.flock(lock_fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        print("⛔ یه instance دیگه از ربات در حال اجراست!")
+        sys.exit(1)
+
     # پاکسازی trade‌های تست
     cleanup_test_trades()
 

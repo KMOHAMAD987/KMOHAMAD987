@@ -85,6 +85,7 @@ def get_ticker(symbol: str) -> dict:
     resp = requests.get(
         f"{BASE_URL}/api/v1/futures/market/tickers",
         params={"symbol": symbol.upper()},
+        headers={"User-Agent": "Mozilla/5.0 (crypto-signal-bot/1.0)"},
         timeout=10,
     )
     resp.raise_for_status()
@@ -93,7 +94,20 @@ def get_ticker(symbol: str) -> dict:
     if data.get("code") != 0:
         raise RuntimeError(f"خطا: {data.get('msg')}")
 
-    return data["data"][0] if data["data"] else {}
+    tickers = data.get("data", [])
+    if not tickers:
+        return {}
+
+    # اول دقیقاً symbol رو پیدا کن
+    for t in tickers:
+        if t.get("symbol", "").upper() == symbol.upper():
+            return t
+
+    # اگه فقط یه نتیجه برگشت
+    if len(tickers) == 1:
+        return tickers[0]
+
+    return {}
 
 
 def get_trading_pairs() -> list:
