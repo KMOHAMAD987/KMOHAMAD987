@@ -13,7 +13,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-BOT_TOKEN   = "8681715370:AAF5n-0c2WCFg1xWzQzaOQY8kSeHjp-lKX8"
+BOT_TOKEN   = "8681715370:AAGgpqThXK2SpdxA8WE7ZrAZDoEJfqrUJ8s"
 ADMIN_IDS   = ["1813614997"]
 BASE_URL    = f"https://api.telegram.org/bot{BOT_TOKEN}"
 USERS_FILE  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/tg_users.json")
