@@ -381,11 +381,11 @@ def _levels_long(price, s5m, s1h, s15m):
     tp2 = round(price + risk * 2.0, 6)
     tp3 = round(price + risk * 3.5, 6)
 
-    # سقف: Swing High یا Bearish OB
+    # سقف: Swing High یا Bearish OB (فقط TP2/TP3 — TP1 باید بالای entry بمونه)
     sh = s1h["swings"]["last_high"]
     if sh and price < sh < tp3:
-        if sh < tp1: tp1 = round(sh * 0.9985, 6)
         if sh < tp2: tp2 = round(sh * 0.9985, 6)
+        if sh < tp3: tp3 = round(sh, 6)
 
     bear_ob = s1h["ob"].get("nearest_bear_ob")
     if bear_ob and price < bear_ob["bottom"] < tp3:
@@ -420,11 +420,11 @@ def _levels_short(price, s5m, s1h, s15m):
     tp2 = round(price - risk * 2.0, 6)
     tp3 = round(price - risk * 3.5, 6)
 
-    # کف: Swing Low یا Bullish OB
+    # کف: Swing Low یا Bullish OB (فقط TP2/TP3 — TP1 باید زیر entry بمونه)
     sl2 = s1h["swings"]["last_low"]
     if sl2 and tp3 < sl2 < price:
-        if sl2 > tp1: tp1 = round(sl2 * 1.0015, 6)
         if sl2 > tp2: tp2 = round(sl2 * 1.0015, 6)
+        if sl2 > tp3: tp3 = round(sl2, 6)
 
     bull_ob = s1h["ob"].get("nearest_bull_ob")
     if bull_ob and tp3 < bull_ob["top"] < price:

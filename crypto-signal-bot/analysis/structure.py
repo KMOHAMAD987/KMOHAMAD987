@@ -154,16 +154,16 @@ def find_order_blocks(df: pd.DataFrame, lookback: int = 50) -> dict:
     nearest_bear_ob = None
 
     if valid_bull_obs:
-        # نزدیک‌ترین Bullish OB زیر قیمت
-        below = [ob for ob in valid_bull_obs if ob["top"] < price]
+        # نزدیک‌ترین Bullish OB زیر یا روی قیمت (قیمت می‌تونه داخل OB باشه)
+        below = [ob for ob in valid_bull_obs if ob["bottom"] <= price]
         if below:
-            nearest_bull_ob = min(below, key=lambda ob: price - ob["top"])
+            nearest_bull_ob = min(below, key=lambda ob: abs(price - (ob["top"] + ob["bottom"]) / 2))
 
     if valid_bear_obs:
-        # نزدیک‌ترین Bearish OB بالای قیمت
-        above = [ob for ob in valid_bear_obs if ob["bottom"] > price]
+        # نزدیک‌ترین Bearish OB بالا یا روی قیمت
+        above = [ob for ob in valid_bear_obs if ob["top"] >= price]
         if above:
-            nearest_bear_ob = min(above, key=lambda ob: ob["bottom"] - price)
+            nearest_bear_ob = min(above, key=lambda ob: abs((ob["top"] + ob["bottom"]) / 2 - price))
 
     return {
         "bullish_obs":      valid_bull_obs[-3:],   # آخرین ۳ تا
@@ -234,14 +234,14 @@ def find_fvg(df: pd.DataFrame, lookback: int = 50) -> dict:
     nearest_bear_fvg = None
 
     if bull_fvgs:
-        below = [f for f in bull_fvgs if f["top"] < price]
+        below = [f for f in bull_fvgs if f["bottom"] <= price]
         if below:
-            nearest_bull_fvg = min(below, key=lambda f: price - f["top"])
+            nearest_bull_fvg = min(below, key=lambda f: abs(price - (f["top"] + f["bottom"]) / 2))
 
     if bear_fvgs:
-        above = [f for f in bear_fvgs if f["bottom"] > price]
+        above = [f for f in bear_fvgs if f["top"] >= price]
         if above:
-            nearest_bear_fvg = min(above, key=lambda f: f["bottom"] - price)
+            nearest_bear_fvg = min(above, key=lambda f: abs((f["top"] + f["bottom"]) / 2 - price))
 
     return {
         "bull_fvgs":          bull_fvgs[-3:],

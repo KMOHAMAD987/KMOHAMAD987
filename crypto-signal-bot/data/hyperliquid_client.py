@@ -453,15 +453,45 @@ def get_volume_oi_combo(symbol):
 def get_full_hl_analysis(symbol, direction):
     """
     تحلیل کامل Hyperliquid — ترکیب همه فاکتورها
+    یه بار API صدا میزنه و نتیجه رو بین همه آنالیزها share می‌کنه
     Returns: (total_score_adj, reasons_list, details_dict)
     """
+    hl_name = SYMBOL_MAP.get(symbol)
+    if not hl_name:
+        return 0, ["ارز در Hyperliquid نیست"], {}
+
+    data = get_market_data()
+    if not data or hl_name not in data:
+        return 0, ["خطا در دریافت Hyperliquid"], {}
+
+    info = data[hl_name]
     total_adj = 0.0
     reasons = []
     details = {}
+    is_long = direction == "LONG"
 
     # ۱. Funding Rate
     try:
-        fr_adj, fr_reason = get_funding_direction_score(symbol, direction)
+        fr = info["funding_rate"]
+        fr_pct = fr * 100
+        if is_long:
+            if fr > 0.01:
+                fr_adj, fr_reason = -1.0, "⛔ Funding بالا ({:+.3f}%) ضد LONG".format(fr_pct)
+            elif fr > 0.005:
+                fr_adj, fr_reason = -0.3, "⚠️ Funding مثبت ({:+.3f}%)".format(fr_pct)
+            elif fr < -0.005:
+                fr_adj, fr_reason = 0.5, "✅ Funding منفی ({:+.3f}%) — LONG تأیید".format(fr_pct)
+            else:
+                fr_adj, fr_reason = 0.2, "✅ Funding متعادل"
+        else:
+            if fr < -0.01:
+                fr_adj, fr_reason = -1.0, "⛔ Funding پایین ({:+.3f}%) ضد SHORT".format(fr_pct)
+            elif fr < -0.005:
+                fr_adj, fr_reason = -0.3, "⚠️ Funding منفی ({:+.3f}%)".format(fr_pct)
+            elif fr > 0.005:
+                fr_adj, fr_reason = 0.5, "✅ Funding مثبت ({:+.3f}%) — SHORT تأیید".format(fr_pct)
+            else:
+                fr_adj, fr_reason = 0.2, "✅ Funding متعادل"
         total_adj += fr_adj
         reasons.append(fr_reason)
         details["funding"] = {"adj": fr_adj, "reason": fr_reason}
@@ -470,7 +500,60 @@ def get_full_hl_analysis(symbol, direction):
 
     # ۲. OI Changes
     try:
-        oi_adj, oi_reason = get_oi_direction_score(symbol, direction)
+        current_oi = info["open_interest"]
+        mark_price = info["mark_price"]
+        cache = _load_oi_cache()
+        prev = cache.get(hl_name, {})
+        prev_oi = prev.get("oi", current_oi)
+        prev_price = prev.get("price", mark_price)
+        prev_time = prev.get("time", 0)
+
+        cache[hl_name] = {"oi": current_oi, "price": mark_price, "time": time.time()}
+        _save_oi_cache(cache)
+
+        oi_usd = current_oi * mark_price
+        time_diff = time.time() - prev_time
+
+        if prev_time == 0 or time_diff > 7200:
+            oi_adj, oi_reason = 0, "📊 OI: ${:,.0f} (بدون مقایسه)".format(oi_usd)
+        else:
+            oi_change_pct = ((current_oi - prev_oi) / prev_oi * 100) if prev_oi else 0
+            price_change_pct = ((mark_price - prev_price) / prev_price * 100) if prev_price else 0
+            oi_rising = oi_change_pct > 1.0
+            oi_falling = oi_change_pct < -1.0
+            price_up = price_change_pct > 0.1
+            price_down = price_change_pct < -0.1
+
+            if oi_rising and price_up:
+                sig = "strong_bullish"
+            elif oi_rising and price_down:
+                sig = "strong_bearish"
+            elif oi_falling and price_up:
+                sig = "short_squeeze"
+            elif oi_falling and price_down:
+                sig = "long_squeeze"
+            elif abs(oi_change_pct) > 5:
+                sig = "spike"
+            else:
+                sig = "neutral"
+
+            if sig == "strong_bullish":
+                oi_adj = 0.8 if is_long else -0.5
+                oi_reason = "✅ OI افزایشی + قیمت بالا ({:+.1f}%)".format(oi_change_pct) if is_long else "⚠️ OI صعودی — ضد SHORT"
+            elif sig == "strong_bearish":
+                oi_adj = -0.5 if is_long else 0.8
+                oi_reason = "⚠️ OI نزولی — ضد LONG" if is_long else "✅ OI افزایشی + قیمت پایین ({:+.1f}%)".format(oi_change_pct)
+            elif sig == "short_squeeze":
+                oi_adj = 0.5 if is_long else -0.8
+                oi_reason = "⚠️ شورت اسکوییز ({:+.1f}%)".format(oi_change_pct) if is_long else "⛔ شورت اسکوییز — SHORT خطرناک"
+            elif sig == "long_squeeze":
+                oi_adj = -0.8 if is_long else 0.5
+                oi_reason = "⛔ لانگ اسکوییز — LONG خطرناک" if is_long else "⚠️ لانگ اسکوییز ({:+.1f}%)".format(oi_change_pct)
+            elif sig == "spike":
+                oi_adj, oi_reason = 0.3, "🔥 تغییر شدید OI ({:+.1f}%)".format(oi_change_pct)
+            else:
+                oi_adj, oi_reason = 0, "📊 OI ثابت ({:+.1f}%)".format(oi_change_pct)
+
         total_adj += oi_adj
         reasons.append(oi_reason)
         details["oi"] = {"adj": oi_adj, "reason": oi_reason}
@@ -479,7 +562,33 @@ def get_full_hl_analysis(symbol, direction):
 
     # ۳. Liquidation Magnet
     try:
-        liq_adj, liq_reason = get_liquidation_direction_score(symbol, direction)
+        fr = info["funding_rate"]
+        price = info["mark_price"]
+        if fr > 0.005:
+            liq_target = price * 0.95
+            magnet_dir = "down"
+            liq_base = "🧲 لیکوییدیشن لانگ‌ها زیر ${:,.0f}".format(liq_target)
+        elif fr < -0.005:
+            liq_target = price * 1.05
+            magnet_dir = "up"
+            liq_base = "🧲 لیکوییدیشن شورت‌ها بالای ${:,.0f}".format(liq_target)
+        else:
+            magnet_dir = "none"
+            liq_base = "📊 لیکوییدیشن متعادل"
+
+        if magnet_dir == "none":
+            liq_adj, liq_reason = 0, liq_base
+        elif magnet_dir == "up" and is_long:
+            liq_adj, liq_reason = 0.5, "✅ " + liq_base + " — هم‌جهت LONG"
+        elif magnet_dir == "down" and not is_long:
+            liq_adj, liq_reason = 0.5, "✅ " + liq_base + " — هم‌جهت SHORT"
+        elif magnet_dir == "up" and not is_long:
+            liq_adj, liq_reason = -0.5, "⚠️ مگنت صعودی — ضد SHORT"
+        elif magnet_dir == "down" and is_long:
+            liq_adj, liq_reason = -0.5, "⚠️ مگنت نزولی — ضد LONG"
+        else:
+            liq_adj, liq_reason = 0, liq_base
+
         total_adj += liq_adj
         reasons.append(liq_reason)
         details["liquidation"] = {"adj": liq_adj, "reason": liq_reason}
@@ -488,10 +597,31 @@ def get_full_hl_analysis(symbol, direction):
 
     # ۴. Volume + OI Combo
     try:
-        combo = get_volume_oi_combo(symbol)
-        total_adj += combo["score_adj"]
-        reasons.append(combo["reason"])
-        details["vol_oi"] = {"adj": combo["score_adj"], "reason": combo["reason"]}
+        vol = info["volume_24h"]
+        oi = info["open_interest"]
+        price = info["mark_price"]
+        oi_usd = oi * price if price > 0 else 0
+        vol_oi_ratio = vol / oi_usd if oi_usd > 0 else 0
+
+        if vol_oi_ratio > 3.0:
+            combo_adj = 0.7
+            combo_reason = "🔥 حجم خیلی بالا (Vol/OI: {:.1f}) — روند قوی".format(vol_oi_ratio)
+        elif vol_oi_ratio > 1.5:
+            combo_adj = 0.4
+            combo_reason = "✅ بازار فعال (Vol/OI: {:.1f})".format(vol_oi_ratio)
+        elif vol_oi_ratio > 0.5:
+            combo_adj = 0.1
+            combo_reason = "📊 بازار عادی (Vol/OI: {:.1f})".format(vol_oi_ratio)
+        elif vol_oi_ratio > 0.2:
+            combo_adj = 0.3
+            combo_reason = "🔸 فشرده‌سازی (Vol/OI: {:.1f}) — حرکت بزرگ نزدیک".format(vol_oi_ratio)
+        else:
+            combo_adj = -0.5
+            combo_reason = "❌ بازار مرده (Vol/OI: {:.1f}) — ورود ممنوع".format(vol_oi_ratio)
+
+        total_adj += combo_adj
+        reasons.append(combo_reason)
+        details["vol_oi"] = {"adj": combo_adj, "reason": combo_reason}
     except:
         details["vol_oi"] = {"adj": 0, "reason": "خطا"}
 

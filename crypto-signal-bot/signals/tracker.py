@@ -248,7 +248,7 @@ def expire_old_trades(max_hours: int = 48):
     now = datetime.utcnow()
 
     for tid, t in db["trades"].items():
-        if t["status"] != "OPEN":
+        if t["status"] not in ("OPEN", "TP1", "TP2"):
             continue
         opened = datetime.fromisoformat(t["opened_at"])
         diff_h = (now - opened).total_seconds() / 3600
