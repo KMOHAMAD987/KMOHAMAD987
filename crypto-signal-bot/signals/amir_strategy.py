@@ -1,6 +1,14 @@
 """
-موتور سیگنال استراتژی Amir — نسخه کامل
-قوانین دقیق: BTC اول، نمره ۸+، R:R حداقل ۱:۳، ناحیه OB/Liquidity
+AMIR TRADING SYSTEM V6 ULTIMATE
+سیستم امتیازدهی:
+  BTC trend:        0-2
+  Market structure:  0-2
+  MTS source TF:     0-2
+  Entry zone:        0-1.5
+  RSI & momentum:    0-1
+  Risk/Reward:       0-1.5
+  Total:             10
+MIN_SCORE = 8.5 | MIN_RR = 3.0
 """
 
 import sys, os
@@ -14,6 +22,8 @@ from typing import Optional
 from analysis.indicators import compute_indicators
 from analysis.vwap import compute_vwap
 from analysis.structure import compute_structure
+from analysis.volume_profile import compute_volume_profile
+from analysis.liquidity import compute_liquidity
 
 try:
     from data.hyperliquid_client import get_full_hl_analysis
@@ -21,9 +31,6 @@ try:
 except ImportError:
     HAS_HYPERLIQUID = False
 
-# ─────────────────────────────────────────
-# ارزهای مجاز
-# ─────────────────────────────────────────
 ALLOWED_SYMBOLS = [
     "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","DOGEUSDT",
     "XRPUSDT","ADAUSDT","AVAXUSDT","LINKUSDT","ATOMUSDT",
@@ -36,20 +43,20 @@ ALLOWED_SYMBOLS = [
     "1000FLOKIUSDT",
 ]
 
-# حداقل‌ها
-MIN_SCORE  = 8.0   # از ۱۰ — فقط سیگنال‌های قوی
-MIN_RR     = 1.0   # حداقل ۱:۱
-MIN_PROB   = 50    # درصد احتمال
+MIN_SCORE = 8.5
+MIN_RR    = 3.0
+MIN_PROB  = 50
+
 
 @dataclass
 class Signal:
     symbol:      str
-    direction:   str        # LONG | SHORT | NO_SIGNAL
+    direction:   str
     timeframe:   str
     price:       float
-    score:       float      # از ۱۰
-    probability: int        # درصد
-    confidence:  str        # HIGH | MEDIUM | LOW | REJECTED
+    score:       float
+    probability: int
+    confidence:  str
 
     entry:       float = 0.0
     stop_loss:   float = 0.0
@@ -59,12 +66,14 @@ class Signal:
     rr:          float = 0.0
     leverage:    int   = 5
 
-    btc_score:   float = 0.0   # نمره BTC از ۱۰
+    btc_score:   float = 0.0
     btc_bias:    str   = "neutral"
 
     reasons:     list = field(default_factory=list)
     failed:      list = field(default_factory=list)
     reject_reason: str = ""
+
+    score_breakdown: dict = field(default_factory=dict)
 
     def to_dict(self): return self.__dict__
 
@@ -83,6 +92,8 @@ def _compute(df):
     df, ind = compute_indicators(df)
     df, vwap = compute_vwap(df)
     df, struct = compute_structure(df)
+    vp = compute_volume_profile(df)
+    liq = compute_liquidity(df)
     return df, {
         "price":    ind["price"],
         "ema":      ind["ema"],
@@ -97,29 +108,28 @@ def _compute(df):
         "ob":       struct["ob"],
         "fvg":      struct["fvg"],
         "swings":   struct["swings"],
+        "vp":       vp,
+        "liq":      liq,
     }
 
 
 # ─────────────────────────────────────────
-# مرحله ۱: تحلیل BTC
+# BTC Analysis
 # ─────────────────────────────────────────
 
 def analyze_btc(df_4h, df_1h, df_15m) -> dict:
-    """
-    تحلیل BTC در سه تایم‌فریم و نمره‌دهی ۱۰
-    """
     try:
         _, s4h  = _compute(df_4h)
         _, s1h  = _compute(df_1h)
         _, s15m = _compute(df_15m)
     except Exception as e:
-        return {"score": 5.0, "bias": "neutral", "reasons": [f"خطا: {e}"]}
+        return {"score": 5.0, "bias": "neutral", "reasons": ["خطا: {}".format(e)]}
 
     score   = 0.0
     reasons = []
     price   = s4h["price"]
 
-    # ── روند کلی 4H (2 امتیاز) ──
+    # 4H Trend (macro)
     if s4h["ema"]["above_200"]:
         score += 1.0
         reasons.append("✅ 4H بالای EMA200")
@@ -135,39 +145,55 @@ def analyze_btc(df_4h, df_1h, df_15m) -> dict:
         score += 0.5
         reasons.append("⚠️ 4H روند خنثی")
 
-    # ── ساختار 1H BOS/CHOCH (2 امتیاز) ──
+    # 1H Structure
     if s1h["bos"]["bos_bullish"]:
-        score += 2.0
+        score += 1.5
         reasons.append("✅ 1H BOS صعودی")
+    elif s1h["bos"]["choch_bullish"]:
+        score += 1.0
+        reasons.append("✅ 1H CHOCH صعودی")
     elif s1h["bos"]["bos_bearish"]:
         reasons.append("❌ 1H BOS نزولی")
+    elif s1h["bos"]["choch_bearish"]:
+        score -= 0.5
+        reasons.append("❌ 1H CHOCH نزولی")
     else:
-        score += 1.0
+        score += 0.5
         reasons.append("⚠️ 1H ساختار خنثی")
 
-    # ── VWAP (1.5 امتیاز) ──
+    # VWAP
     if s1h["vwap"]["above_vwap"]:
         score += 1.5
         reasons.append("✅ 1H بالای VWAP")
     else:
         reasons.append("❌ 1H زیر VWAP")
 
-    # ── RSI (1.5 امتیاز) ──
+    # RSI
     rsi_4h = s4h["rsi"]["value"]
     if rsi_4h:
         if 50 < rsi_4h < 70:
             score += 1.5
-            reasons.append(f"✅ RSI 4H مناسب ({rsi_4h:.0f})")
+            reasons.append("✅ RSI 4H مناسب ({:.0f})".format(rsi_4h))
         elif 30 < rsi_4h <= 50:
             score += 0.5
-            reasons.append(f"⚠️ RSI 4H ضعیف ({rsi_4h:.0f})")
+            reasons.append("⚠️ RSI 4H ضعیف ({:.0f})".format(rsi_4h))
         elif rsi_4h >= 70:
             score += 0.5
-            reasons.append(f"⚠️ RSI 4H اشباع ({rsi_4h:.0f})")
+            reasons.append("⚠️ RSI 4H اشباع ({:.0f})".format(rsi_4h))
         else:
-            reasons.append(f"❌ RSI 4H خیلی پایین ({rsi_4h:.0f})")
+            reasons.append("❌ RSI 4H خیلی پایین ({:.0f})".format(rsi_4h))
 
-    # ── Order Block 4H (1 امتیاز) ──
+    # Volume Profile POC
+    vp = s4h["vp"]
+    if vp["poc"] and vp["price_vs_poc"] == "above":
+        score += 1.0
+        reasons.append("✅ 4H بالای POC")
+    elif vp["poc"] and vp["price_vs_poc"] == "below":
+        reasons.append("❌ 4H زیر POC")
+    else:
+        score += 0.5
+
+    # OB/FVG
     if s4h["ob"]["nearest_bull_ob"] or s4h["fvg"]["nearest_bull_fvg"]:
         score += 1.0
         reasons.append("✅ OB/FVG صعودی در 4H")
@@ -176,223 +202,346 @@ def analyze_btc(df_4h, df_1h, df_15m) -> dict:
     else:
         score += 0.5
 
-    # ── حجم 15m (1 امتیاز) ──
+    # Liquidity
+    liq = s15m["liq"]
+    if liq["sweep_signal"] == "bullish_sweep":
+        score += 0.5
+        reasons.append("✅ Liquidity Sweep صعودی")
+    elif liq["sweep_signal"] == "bearish_sweep":
+        score -= 0.5
+        reasons.append("❌ Liquidity Sweep نزولی")
+
+    # Volume
     if s15m["volume"]["above_average"]:
-        score += 1.0
-        reasons.append(f"✅ حجم BTC بالا ({s15m['volume']['ratio']:.1f}x)")
-    else:
-        reasons.append(f"⚠️ حجم BTC پایین ({s15m['volume']['ratio']:.1f}x)")
+        score += 0.5
+        reasons.append("✅ حجم BTC بالا ({:.1f}x)".format(s15m["volume"]["ratio"]))
 
-    score = min(10.0, score)
+    score = min(10.0, max(0.0, score))
 
-    # بایاس
     if score >= 7:   bias = "bullish"
-    elif score <= 4: bias = "bearish"
+    elif score >= 5: bias = "neutral"
+    elif score <= 3: bias = "bearish"
     else:            bias = "neutral"
 
-    return {"score": round(score, 1), "bias": bias, "reasons": reasons, "price": price}
+    btc_class = "strong_bullish" if score >= 8.5 else \
+                "bullish" if score >= 7 else \
+                "neutral" if score >= 4 else \
+                "bearish" if score >= 2 else "strong_bearish"
+
+    return {
+        "score": round(score, 1),
+        "bias": bias,
+        "btc_class": btc_class,
+        "reasons": reasons,
+        "price": price,
+    }
 
 
 # ─────────────────────────────────────────
-# مرحله ۲: تحلیل ارز
+# V6 Scoring System
 # ─────────────────────────────────────────
 
-def _score_coin(s4h, s1h, s15m, s5m, btc_bias, direction) -> tuple:
-    """نمره‌دهی ۱۰ برای یک ارز در جهت مشخص — شامل تایم‌فریم ۴H"""
-    score   = 0.0
-    reasons = []
-    price   = s5m["price"]
-    is_long = (direction == "LONG")
+def _score_btc_alignment(btc_bias, btc_score, direction):
+    """BTC trend: 0-2"""
+    is_long = direction == "LONG"
+    aligned = (btc_bias == "bullish" and is_long) or (btc_bias == "bearish" and not is_long)
+    against = (btc_bias == "bearish" and is_long) or (btc_bias == "bullish" and not is_long)
 
-    # ── ۰. روند ۴H ارز (2 امتیاز — بیشترین وزن) ──
-    trend_4h = s4h["ema"]["trend"]
-    if trend_4h == ("bullish" if is_long else "bearish"):
-        score += 2.0
-        reasons.append(f"✅ 4H روند {'صعودی' if is_long else 'نزولی'} تأیید")
-    elif trend_4h == "neutral":
-        score += 0.5
-        reasons.append("⚠️ 4H روند خنثی")
-    else:
-        score -= 1.0
-        reasons.append(f"❌ 4H روند مخالف ({trend_4h}) — کسر امتیاز")
-
-    # ── ۱. همسویی با BTC (1 امتیاز) ──
-    if btc_bias == ("bullish" if is_long else "bearish"):
-        score += 1.0
-        reasons.append(f"✅ BTC هم‌جهت ({btc_bias})")
+    if aligned and btc_score >= 7:
+        return 2.0, "✅ BTC هم‌جهت قوی ({} | {}/10)".format(btc_bias, btc_score)
+    elif aligned:
+        return 1.5, "✅ BTC هم‌جهت ({})".format(btc_bias)
     elif btc_bias == "neutral":
-        score += 0.3
-        reasons.append("⚠️ BTC خنثی")
+        return 1.0, "⚠️ BTC خنثی"
+    elif against and btc_score <= 3:
+        return 0.0, "⛔ BTC شدیداً مخالف ({})".format(btc_bias)
     else:
-        score -= 0.5
-        reasons.append(f"❌ BTC مخالف ({btc_bias})")
+        return 0.5, "❌ BTC مخالف ({})".format(btc_bias)
 
-    # ── ۲. EMA Stack مرتب 1H (1.5 امتیاز) ──
-    ema_aligned = s1h["ema"].get("ema_aligned_bull" if is_long else "ema_aligned_bear", False)
-    ema_trend   = s1h["ema"]["trend"] == ("bullish" if is_long else "bearish")
-    if ema_aligned:
-        score += 1.5
-        reasons.append(f"✅ 1H EMA Stack مرتب {'صعودی' if is_long else 'نزولی'}")
-    elif ema_trend:
+
+def _score_market_structure(s1h, s15m, s5m, direction):
+    """Market structure (BOS/CHOCH): 0-2"""
+    is_long = direction == "LONG"
+    score = 0.0
+    reasons = []
+
+    # BOS check across timeframes
+    bos_1h = s1h["bos"]["bos_bullish"] if is_long else s1h["bos"]["bos_bearish"]
+    bos_15m = s15m["bos"]["bos_bullish"] if is_long else s15m["bos"]["bos_bearish"]
+    bos_5m = s5m["bos"]["bos_bullish"] if is_long else s5m["bos"]["bos_bearish"]
+    choch_1h = s1h["bos"]["choch_bullish"] if is_long else s1h["bos"]["choch_bearish"]
+    choch_15m = s15m["bos"]["choch_bullish"] if is_long else s15m["bos"]["choch_bearish"]
+
+    # Counter-direction BOS (strong against signal)
+    bos_against_1h = s1h["bos"]["bos_bearish"] if is_long else s1h["bos"]["bos_bullish"]
+
+    if bos_1h:
+        score += 1.2
+        reasons.append("✅ BOS {} 1H".format("صعودی" if is_long else "نزولی"))
+    elif choch_1h:
         score += 0.8
-        reasons.append(f"⚠️ 1H روند {'صعودی' if is_long else 'نزولی'} (stack ناقص)")
-    else:
-        reasons.append(f"❌ 1H روند مخالف")
+        reasons.append("✅ CHOCH {} 1H".format("صعودی" if is_long else "نزولی"))
+    elif bos_against_1h:
+        reasons.append("⛔ BOS مخالف 1H")
+        return 0.0, reasons
 
-    # ── ۳. ADX — فقط بازار ترندینگ (1 امتیاز) ──
-    adx = s15m.get("adx")
-    plus_di  = s15m.get("plus_di")
-    minus_di = s15m.get("minus_di")
-    if adx and adx > 25:
-        di_ok = (plus_di > minus_di) if is_long else (minus_di > plus_di)
-        if di_ok:
-            score += 1.0
-            reasons.append(f"✅ ADX قوی ({adx:.0f}) جهت تأیید")
-        else:
-            score += 0.3
-            reasons.append(f"⚠️ ADX قوی ({adx:.0f}) اما DI مخالف")
-    elif adx and adx > 18:
-        score += 0.4
-        reasons.append(f"⚠️ ADX متوسط ({adx:.0f})")
-    else:
-        score -= 0.5
-        reasons.append("⛔ ADX ضعیف ({}) — بازار رنج".format(int(adx) if adx else 0))
-
-    # ── ۴. BOS/CHOCH (1.5 امتیاز) ──
-    bos_ok = (s15m["bos"]["bos_bullish"] or s5m["bos"]["bos_bullish"]) if is_long else \
-             (s15m["bos"]["bos_bearish"] or s5m["bos"]["bos_bearish"])
-    if bos_ok:
-        score += 1.5
-        reasons.append(f"✅ BOS {'صعودی' if is_long else 'نزولی'} تأیید شد")
-    else:
-        reasons.append("❌ BOS تأیید نشد")
-
-    # ── ۵. Order Block (1.5 امتیاز) ──
-    in_ob   = (s15m["ob"]["price_in_bull_ob"] or s5m["ob"]["price_in_bull_ob"]) if is_long else \
-              (s15m["ob"]["price_in_bear_ob"] or s5m["ob"]["price_in_bear_ob"])
-    near_ob = (s15m["ob"]["nearest_bull_ob"] or s5m["ob"]["nearest_bull_ob"]) if is_long else \
-              (s15m["ob"]["nearest_bear_ob"] or s5m["ob"]["nearest_bear_ob"])
-    if in_ob:
-        score += 1.5
-        reasons.append(f"✅ داخل Order Block {'صعودی' if is_long else 'نزولی'}")
-    elif near_ob:
-        score += 0.6
-        reasons.append(f"⚠️ نزدیک Order Block")
-    else:
-        reasons.append("❌ خارج از Order Block")
-
-    # ── ۶. FVG (1 امتیاز) ──
-    in_fvg   = (s15m["fvg"]["price_in_bull_fvg"] or s5m["fvg"]["price_in_bull_fvg"]) if is_long else \
-               (s15m["fvg"]["price_in_bear_fvg"] or s5m["fvg"]["price_in_bear_fvg"])
-    near_fvg = (s15m["fvg"]["nearest_bull_fvg"] or s5m["fvg"]["nearest_bull_fvg"]) if is_long else \
-               (s15m["fvg"]["nearest_bear_fvg"] or s5m["fvg"]["nearest_bear_fvg"])
-    if in_fvg:
-        score += 1.0
-        reasons.append("✅ داخل FVG")
-    elif near_fvg:
-        score += 0.4
-        reasons.append("⚠️ نزدیک FVG")
-
-    # ── ۷. VWAP (1 امتیاز) ──
-    vwap_ok = s1h["vwap"]["above_vwap"] if is_long else not s1h["vwap"]["above_vwap"]
-    if vwap_ok:
-        if s1h["vwap"].get("cross") == ("bullish_cross" if is_long else "bearish_cross"):
-            score += 1.0
-            reasons.append(f"✅ کراس {'صعودی' if is_long else 'نزولی'} VWAP 1H")
-        else:
-            score += 0.7
-            reasons.append(f"✅ {'بالای' if is_long else 'زیر'} VWAP 1H")
-    else:
-        reasons.append(f"❌ {'زیر' if is_long else 'بالای'} VWAP 1H")
-
-    # ── ۸. RSI (1 امتیاز) ──
-    rsi = s15m["rsi"]["value"]
-    if rsi:
-        if is_long:
-            if 48 < rsi < 65:   score += 1.0; reasons.append(f"✅ RSI مناسب ({rsi:.0f})")
-            elif 40 <= rsi <= 48: score += 0.4; reasons.append(f"⚠️ RSI ضعیف ({rsi:.0f})")
-            elif rsi >= 65:     reasons.append(f"❌ RSI اشباع ({rsi:.0f})")
-            else:               reasons.append(f"❌ RSI خیلی پایین ({rsi:.0f})")
-        else:
-            if 35 < rsi < 52:   score += 1.0; reasons.append(f"✅ RSI مناسب ({rsi:.0f})")
-            elif 52 <= rsi <= 60: score += 0.4; reasons.append(f"⚠️ RSI بالا ({rsi:.0f})")
-            else:               reasons.append(f"❌ RSI اشباع فروش ({rsi:.0f})")
-
-    # ── ۹. حجم (1 امتیاز) ──
-    if s5m["volume"]["strong"]:
-        score += 1.0
-        reasons.append(f"✅ حجم قوی ({s5m['volume']['ratio']:.1f}x)")
-    elif s5m["volume"]["above_average"]:
+    if bos_15m:
         score += 0.5
-        reasons.append(f"⚠️ حجم متوسط ({s5m['volume']['ratio']:.1f}x)")
-    elif s15m["volume"]["above_average"]:
+        reasons.append("✅ BOS {} 15M".format("صعودی" if is_long else "نزولی"))
+    elif choch_15m:
         score += 0.3
-        reasons.append(f"⚠️ حجم 15m متوسط")
+        reasons.append("✅ CHOCH {} 15M".format("صعودی" if is_long else "نزولی"))
+
+    if bos_5m:
+        score += 0.3
+        reasons.append("✅ BOS {} 5M تأیید".format("صعودی" if is_long else "نزولی"))
+
+    # Liquidity sweep confirmation
+    sweep_ok = False
+    for tf_data in [s15m, s5m]:
+        sweep = tf_data["liq"]["sweep_signal"]
+        if (is_long and sweep == "bullish_sweep") or (not is_long and sweep == "bearish_sweep"):
+            score = min(2.0, score + 0.3)
+            sweep_ok = True
+            reasons.append("✅ Liquidity Sweep تأیید")
+            break
+
+    return min(2.0, score), reasons
+
+
+def _score_mts_source(s4h, s1h, s15m, s5m, direction):
+    """MTS Source Candle & Timeframe Power: 0-2"""
+    is_long = direction == "LONG"
+    score = 0.0
+    reasons = []
+
+    # Source from higher TF = stronger
+    # 4H trend alignment
+    trend_4h = s4h["ema"]["trend"]
+    trend_1h = s1h["ema"]["trend"]
+    expected = "bullish" if is_long else "bearish"
+
+    if trend_4h == expected:
+        score += 1.0
+        reasons.append("✅ 4H Source هم‌جهت ({})".format(trend_4h))
+    elif trend_4h == "neutral":
+        score += 0.3
+        reasons.append("⚠️ 4H Source خنثی")
     else:
-        reasons.append(f"❌ حجم ضعیف ({s5m['volume']['ratio']:.1f}x)")
+        reasons.append("⛔ 4H Source مخالف ({})".format(trend_4h))
+        return 0.0, reasons
 
-    # ── پنالتی: بازار رنج (وسط VWAP) ──
-    v = s15m["vwap"]["vwap"]
-    if v:
-        dist = abs(price - v) / price * 100
-        if dist < 0.05:
-            score -= 1.0
-            reasons.append("⚠️ قیمت نزدیک VWAP")
+    # 1H confirmation
+    if trend_1h == expected:
+        score += 0.5
+        reasons.append("✅ 1H Source تأیید")
+    elif trend_1h == "neutral":
+        score += 0.2
 
-    score = max(0.0, min(10.0, score))
-    return round(score, 1), reasons
+    # EMA200 alignment
+    ema200_ok = s1h["ema"]["above_200"] if is_long else not s1h["ema"]["above_200"]
+    if ema200_ok:
+        score += 0.3
+        reasons.append("✅ {} EMA200 1H".format("بالای" if is_long else "زیر"))
+    else:
+        reasons.append("❌ EMA200 مخالف")
+
+    # EMA stack aligned
+    ema_aligned = s1h["ema"].get("ema_aligned_bull" if is_long else "ema_aligned_bear", False)
+    if ema_aligned:
+        score += 0.2
+        reasons.append("✅ EMA Stack مرتب")
+
+    return min(2.0, score), reasons
+
+
+def _score_entry_zone(s15m, s5m, s1h, direction):
+    """Entry zone confluence: 0-1.5"""
+    is_long = direction == "LONG"
+    confluences = 0
+    score = 0.0
+    reasons = []
+
+    # OB
+    in_ob = False
+    near_ob = False
+    for tf in [s15m, s5m]:
+        if is_long:
+            if tf["ob"]["price_in_bull_ob"]:
+                in_ob = True
+            elif tf["ob"]["nearest_bull_ob"]:
+                near_ob = True
+        else:
+            if tf["ob"]["price_in_bear_ob"]:
+                in_ob = True
+            elif tf["ob"]["nearest_bear_ob"]:
+                near_ob = True
+
+    if in_ob:
+        confluences += 1
+        score += 0.4
+        reasons.append("✅ داخل Order Block")
+    elif near_ob:
+        score += 0.15
+        reasons.append("⚠️ نزدیک Order Block")
+
+    # FVG
+    in_fvg = False
+    for tf in [s15m, s5m]:
+        if is_long and tf["fvg"]["price_in_bull_fvg"]:
+            in_fvg = True
+        elif not is_long and tf["fvg"]["price_in_bear_fvg"]:
+            in_fvg = True
+
+    if in_fvg:
+        confluences += 1
+        score += 0.3
+        reasons.append("✅ داخل FVG")
+
+    # VWAP
+    vwap_ok = s1h["vwap"]["above_vwap"] if is_long else not s1h["vwap"]["above_vwap"]
+    vwap_cross = s1h["vwap"].get("cross")
+    vwap_cross_ok = (vwap_cross == "bullish_cross" and is_long) or (vwap_cross == "bearish_cross" and not is_long)
+
+    if vwap_cross_ok:
+        confluences += 1
+        score += 0.3
+        reasons.append("✅ کراس VWAP")
+    elif vwap_ok:
+        confluences += 1
+        score += 0.2
+        reasons.append("✅ {} VWAP".format("بالای" if is_long else "زیر"))
+    else:
+        reasons.append("❌ VWAP مخالف")
+
+    # Volume Profile POC
+    for tf in [s15m, s1h]:
+        vp = tf["vp"]
+        if vp["poc"]:
+            poc_ok = (vp["price_vs_poc"] == "above" and is_long) or \
+                     (vp["price_vs_poc"] == "below" and not is_long)
+            if poc_ok:
+                confluences += 1
+                score += 0.2
+                reasons.append("✅ {} POC".format("بالای" if is_long else "زیر"))
+            break
+
+    # EMA200
+    ema200_ok = s15m["ema"]["above_200"] if is_long else not s15m["ema"]["above_200"]
+    if ema200_ok:
+        confluences += 1
+        score += 0.15
+
+    # Bonus for multi-confluence
+    if confluences >= 3:
+        score = min(1.5, score + 0.15)
+        reasons.append("🔥 {} کانفلوئنس همزمان".format(confluences))
+
+    return min(1.5, score), reasons
+
+
+def _score_rsi_momentum(s15m, s5m, s1h, direction):
+    """RSI & momentum: 0-1"""
+    is_long = direction == "LONG"
+    score = 0.0
+    reasons = []
+
+    rsi = s15m["rsi"]["value"]
+    rsi_div = s15m["rsi"].get("divergence")
+    rsi_1h = s1h["rsi"]["value"]
+
+    if rsi is None:
+        return 0.5, ["⚠️ RSI نامشخص"]
+
+    # RSI zone
+    if is_long:
+        if 45 < rsi < 65:
+            score += 0.4
+            reasons.append("✅ RSI مناسب ({:.0f})".format(rsi))
+        elif rsi >= 70:
+            reasons.append("⛔ RSI اشباع خرید ({:.0f})".format(rsi))
+            return 0.0, reasons
+        elif rsi <= 30:
+            score += 0.3
+            reasons.append("⚠️ RSI اشباع فروش ({:.0f}) — احتمال برگشت".format(rsi))
+        else:
+            score += 0.2
+            reasons.append("⚠️ RSI ضعیف ({:.0f})".format(rsi))
+    else:
+        if 35 < rsi < 55:
+            score += 0.4
+            reasons.append("✅ RSI مناسب ({:.0f})".format(rsi))
+        elif rsi <= 30:
+            reasons.append("⛔ RSI اشباع فروش ({:.0f})".format(rsi))
+            return 0.0, reasons
+        elif rsi >= 70:
+            score += 0.3
+            reasons.append("⚠️ RSI اشباع خرید ({:.0f}) — احتمال ریزش".format(rsi))
+        else:
+            score += 0.2
+
+    # RSI Divergence bonus
+    if (is_long and rsi_div == "bullish") or (not is_long and rsi_div == "bearish"):
+        score += 0.4
+        reasons.append("✅ واگرایی {} RSI".format("مثبت" if is_long else "منفی"))
+    elif (is_long and rsi_div == "bearish") or (not is_long and rsi_div == "bullish"):
+        score -= 0.2
+        reasons.append("❌ واگرایی مخالف RSI")
+
+    # ADX momentum
+    adx = s15m.get("adx")
+    if adx and adx > 25:
+        score += 0.2
+        reasons.append("✅ ADX قوی ({:.0f})".format(adx))
+
+    return min(1.0, max(0.0, score)), reasons
+
+
+def _score_rr(rr):
+    """Risk/Reward: 0-1.5"""
+    if rr >= 3.0:
+        return 1.5, "✅ R/R عالی (1:{:.1f})".format(rr)
+    elif rr >= 2.0:
+        return 0.8, "⚠️ R/R متوسط (1:{:.1f})".format(rr)
+    else:
+        return 0.0, "❌ R/R ناکافی (1:{:.1f})".format(rr)
 
 
 # ─────────────────────────────────────────
-# سطوح ورود
+# Entry Levels
 # ─────────────────────────────────────────
 
 def _atr_sl_buffer(atr, price, multiplier=1.8):
-    """حداقل فاصله SL بر اساس ATR"""
     if atr and atr > 0:
         return atr * multiplier
-    return price * 0.012   # fallback: 1.2%
+    return price * 0.012
 
 
 def _levels_long(price, s5m, s1h, s15m):
     atr    = s15m.get("atr") or s5m.get("atr")
     min_sl = _atr_sl_buffer(atr, price, multiplier=1.8)
 
-    # کاندیداهای SL — زیر OB / FVG / Swing Low
     sls = []
     ob  = s15m["ob"].get("nearest_bull_ob") or s5m["ob"].get("nearest_bull_ob")
-    if ob:  sls.append(ob["bottom"] * 0.9975)   # ۰.۲۵٪ زیر کف OB
+    if ob:  sls.append(ob["bottom"] * 0.9975)
     ll  = s15m["swings"]["last_low"] or s5m["swings"]["last_low"]
     if ll:  sls.append(ll * 0.9975)
     fvg = s15m["fvg"].get("nearest_bull_fvg")
     if fvg: sls.append(fvg["bottom"] * 0.9975)
 
-    # پایین‌ترین SL رو انتخاب کن (ایمن‌ترین)
     sl_candidate = min(sls) if sls else price - min_sl
-
-    # مطمئن بشیم فاصله حداقل 1.8 ATR باشه
     if (price - sl_candidate) < min_sl:
         sl_candidate = price - min_sl
 
     sl   = round(sl_candidate, 6)
     risk = price - sl
 
-    tp1 = round(price + risk * 1.0, 6)
-    tp2 = round(price + risk * 2.0, 6)
-    tp3 = round(price + risk * 3.5, 6)
+    # Single main TP (RR 1:3), secondary TPs for path info
+    tp1 = round(price + risk * 3.0, 6)   # Main TP (1:3)
+    tp2 = round(price + risk * 4.5, 6)   # Extended
+    tp3 = round(price + risk * 6.0, 6)   # Max
 
-    # سقف: Swing High یا Bearish OB (فقط TP2/TP3 — TP1 باید بالای entry بمونه)
-    sh = s1h["swings"]["last_high"]
-    if sh and price < sh < tp3:
-        if sh < tp2: tp2 = round(sh * 0.9985, 6)
-        if sh < tp3: tp3 = round(sh, 6)
-
-    bear_ob = s1h["ob"].get("nearest_bear_ob")
-    if bear_ob and price < bear_ob["bottom"] < tp3:
-        tp2 = min(tp2, round(bear_ob["bottom"] * 0.9985, 6))
-        tp3 = min(tp3, round(bear_ob["top"], 6))
-
-    rr = round((tp2 - price) / risk, 2) if risk > 0 else 0
+    rr = round((tp1 - price) / risk, 2) if risk > 0 else 0
     return price, sl, tp1, tp2, tp3, rr
 
 
@@ -409,37 +558,25 @@ def _levels_short(price, s5m, s1h, s15m):
     if fvg: sls.append(fvg["top"] * 1.0025)
 
     sl_candidate = max(sls) if sls else price + min_sl
-
     if (sl_candidate - price) < min_sl:
         sl_candidate = price + min_sl
 
     sl   = round(sl_candidate, 6)
     risk = sl - price
 
-    tp1 = round(price - risk * 1.0, 6)
-    tp2 = round(price - risk * 2.0, 6)
-    tp3 = round(price - risk * 3.5, 6)
+    tp1 = round(price - risk * 3.0, 6)
+    tp2 = round(price - risk * 4.5, 6)
+    tp3 = round(price - risk * 6.0, 6)
 
-    # کف: Swing Low یا Bullish OB (فقط TP2/TP3 — TP1 باید زیر entry بمونه)
-    sl2 = s1h["swings"]["last_low"]
-    if sl2 and tp3 < sl2 < price:
-        if sl2 > tp2: tp2 = round(sl2 * 1.0015, 6)
-        if sl2 > tp3: tp3 = round(sl2, 6)
-
-    bull_ob = s1h["ob"].get("nearest_bull_ob")
-    if bull_ob and tp3 < bull_ob["top"] < price:
-        tp2 = max(tp2, round(bull_ob["top"] * 1.0015, 6))
-        tp3 = max(tp3, round(bull_ob["bottom"], 6))
-
-    rr = round((price - tp2) / risk, 2) if risk > 0 else 0
+    rr = round((price - tp1) / risk, 2) if risk > 0 else 0
     return price, sl, tp1, tp2, tp3, rr
 
 
 def _suggest_leverage(score, rr):
-    if score >= 9.5 and rr >= 4: return 20
-    if score >= 9.0 and rr >= 3.5: return 15
-    if score >= 8.5 and rr >= 3: return 10
-    if score >= 8.0: return 7
+    if score >= 9.5 and rr >= 4: return 15
+    if score >= 9.0 and rr >= 3.5: return 12
+    if score >= 9.0: return 10
+    if score >= 8.5: return 7
     return 5
 
 
@@ -449,7 +586,7 @@ def _probability(score, rr, btc_score):
 
 
 # ─────────────────────────────────────────
-# تابع اصلی
+# Main Analysis
 # ─────────────────────────────────────────
 
 def analyze(
@@ -470,173 +607,201 @@ def analyze(
         _, s5m  = _compute(df_5m)
         price   = s5m["price"]
     except Exception as e:
-        return _no(symbol, 0.0, f"خطا در محاسبه: {e}")
+        return _no(symbol, 0.0, "خطا در محاسبه: {}".format(e))
 
-    # ── فیلتر ارز مجاز ──
     if symbol not in ALLOWED_SYMBOLS:
-        return _no(symbol, price, f"ارز {symbol} در لیست مجاز نیست")
+        return _no(symbol, price, "ارز {} در لیست مجاز نیست".format(symbol))
 
-    # ── فیلترهای اجباری ──
+    # Hard filters
     rsi_5m = s5m["rsi"]["value"]
-    if rsi_5m and rsi_5m > 82:
-        return _no(symbol, price, f"RSI 5m اشباع شدید ({rsi_5m:.0f}) — ورود ممنوع")
-    if rsi_5m and rsi_5m < 18:
-        return _no(symbol, price, f"RSI 5m فروش شدید ({rsi_5m:.0f}) — ورود ممنوع")
+    if rsi_5m and rsi_5m > 85:
+        return _no(symbol, price, "RSI 5m اشباع شدید ({:.0f})".format(rsi_5m))
+    if rsi_5m and rsi_5m < 15:
+        return _no(symbol, price, "RSI 5m فروش شدید ({:.0f})".format(rsi_5m))
 
     if s5m["volume"]["ratio"] < 0.4 and s15m["volume"]["ratio"] < 0.4:
         return _no(symbol, price, "حجم خیلی کم — بازار بی‌رمق")
 
-    # ── ADX: بازار رنج شدید رو رد کن ──
-    adx_15m = s15m.get("adx")
-    if adx_15m and adx_15m < 8:
-        return _no(symbol, price, f"ADX خیلی ضعیف ({adx_15m:.0f}) — بازار رنج محض")
+    # BTC strong rejection
+    if btc_bias == "bearish" and btc_score <= 3:
+        # Only allow SHORT
+        pass
+    if btc_bias == "bullish" and btc_score >= 8:
+        # Only allow LONG
+        pass
 
-    # ── فیلتر ۴H ارز — مهم‌ترین فیلتر ──
-    trend_4h = s4h["ema"]["trend"]
-    rsi_4h   = s4h["rsi"]["value"]
+    # Score both directions
+    best_signal = None
 
-    # ── نمره هر دو جهت ──
-    l_score, l_reasons = _score_coin(s4h, s1h, s15m, s5m, btc_bias, "LONG")
-    s_score, s_reasons = _score_coin(s4h, s1h, s15m, s5m, btc_bias, "SHORT")
+    for direction in ["LONG", "SHORT"]:
+        # BTC hard filter
+        if direction == "LONG" and btc_bias == "bearish" and btc_score <= 3:
+            continue
+        if direction == "SHORT" and btc_bias == "bullish" and btc_score >= 8:
+            continue
 
-    # انتخاب جهت
-    if l_score >= s_score and l_score >= MIN_SCORE:
-        direction, score, reasons = "LONG",  l_score, l_reasons
-        entry, sl, tp1, tp2, tp3, rr = _levels_long(price, s5m, s1h, s15m)
-    elif s_score > l_score and s_score >= MIN_SCORE:
-        direction, score, reasons = "SHORT", s_score, s_reasons
-        entry, sl, tp1, tp2, tp3, rr = _levels_short(price, s5m, s1h, s15m)
-    else:
-        best = max(l_score, s_score)
-        return _no(symbol, price,
-            f"نمره ناکافی: {best:.1f}/10 (حداقل {MIN_SCORE})",
-            [f"LONG: {l_score}/10", f"SHORT: {s_score}/10"])
+        breakdown = {}
+        all_reasons = []
 
-    # ── فیلتر 4H: پنالتی بجای رد کامل ──
-    if direction == "LONG" and trend_4h == "bearish":
-        price_in_4h_ob = s4h["ob"]["price_in_bull_ob"]
-        if price_in_4h_ob:
-            reasons.append("⚠️ 4H نزولی اما داخل OB — ریسک بالا")
-            score = round(score * 0.90, 1)
+        # 1. BTC Alignment (0-2)
+        s1, r1 = _score_btc_alignment(btc_bias, btc_score, direction)
+        breakdown["btc"] = s1
+        all_reasons.append(r1)
+
+        # 2. Market Structure (0-2)
+        s2, r2 = _score_market_structure(s1h, s15m, s5m, direction)
+        breakdown["structure"] = s2
+        all_reasons.extend(r2)
+
+        # 3. MTS Source (0-2)
+        s3, r3 = _score_mts_source(s4h, s1h, s15m, s5m, direction)
+        breakdown["mts"] = s3
+        all_reasons.extend(r3)
+
+        # 4. Entry Zone (0-1.5)
+        s4, r4 = _score_entry_zone(s15m, s5m, s1h, direction)
+        breakdown["zone"] = s4
+        all_reasons.extend(r4)
+
+        # 5. RSI & Momentum (0-1)
+        s5_score, r5 = _score_rsi_momentum(s15m, s5m, s1h, direction)
+        breakdown["rsi"] = s5_score
+        all_reasons.extend(r5)
+
+        # Calculate levels first to get RR
+        if direction == "LONG":
+            entry, sl, tp1, tp2, tp3, rr = _levels_long(price, s5m, s1h, s15m)
         else:
-            reasons.append("⚠️ 4H نزولی — پنالتی اعمال شد")
-            score = round(score * 0.82, 1)
+            entry, sl, tp1, tp2, tp3, rr = _levels_short(price, s5m, s1h, s15m)
 
-    if direction == "SHORT" and trend_4h == "bullish":
-        price_in_4h_ob = s4h["ob"]["price_in_bear_ob"]
-        if price_in_4h_ob:
-            reasons.append("⚠️ 4H صعودی اما داخل Bearish OB — ریسک بالا")
-            score = round(score * 0.90, 1)
-        else:
-            reasons.append("⚠️ 4H صعودی — پنالتی اعمال شد")
-            score = round(score * 0.82, 1)
+        # 6. R/R (0-1.5)
+        s6, r6 = _score_rr(rr)
+        breakdown["rr"] = s6
+        all_reasons.append(r6)
 
-    # بررسی دوباره نمره بعد از کسر ۴H
-    if score < MIN_SCORE:
-        return _no(symbol, price, f"نمره بعد از فیلتر 4H: {score}/10", reasons)
+        total = round(s1 + s2 + s3 + s4 + s5_score + s6, 1)
+        total = min(10.0, max(0.0, total))
+        breakdown["total"] = total
 
-    # ── چک R:R ──
-    if rr < MIN_RR:
-        return _no(symbol, price,
-            f"R/R ناکافی: {rr} (حداقل {MIN_RR})",
-            reasons)
+        if best_signal is None or total > best_signal["total"]:
+            best_signal = {
+                "direction": direction,
+                "total": total,
+                "breakdown": breakdown,
+                "reasons": all_reasons,
+                "entry": entry, "sl": sl,
+                "tp1": tp1, "tp2": tp2, "tp3": tp3,
+                "rr": rr,
+            }
 
-    # ── همسویی BTC ──
-    if btc_bias == "bearish" and direction == "LONG" and btc_score < 3:
-        return _no(symbol, price, "BTC شدیداً نزولی — لانگ ممنوع")
-    if btc_bias == "bullish" and direction == "SHORT" and btc_score > 8:
-        return _no(symbol, price, "BTC شدیداً صعودی — شورت ممنوع")
+    if best_signal is None:
+        return _no(symbol, price, "BTC مخالف — هر دو جهت مسدود")
 
-    # ── Hyperliquid: Funding + OI + Liquidation + Vol/OI ──
+    total = best_signal["total"]
+    direction = best_signal["direction"]
+    reasons = best_signal["reasons"]
+    breakdown = best_signal["breakdown"]
+    rr = best_signal["rr"]
+
+    # Hyperliquid adjustment
     if HAS_HYPERLIQUID:
         try:
             hl_adj, hl_reasons, hl_details = get_full_hl_analysis(symbol, direction)
-            score = round(score + hl_adj, 1)
-            score = max(0.0, min(10.0, score))
+            hl_adj_capped = max(-1.0, min(1.0, hl_adj))
+            total = round(total + hl_adj_capped, 1)
+            total = max(0.0, min(10.0, total))
             reasons.extend(hl_reasons)
+            breakdown["hyperliquid"] = hl_adj_capped
         except:
             pass
 
-    if score < MIN_SCORE:
-        return _no(symbol, price, f"نمره بعد از Hyperliquid: {score}/10", reasons)
+    if total < MIN_SCORE:
+        return _no(symbol, price,
+            "امتیاز ناکافی: {}/10 (حداقل {})".format(total, MIN_SCORE),
+            ["BTC: {}".format(breakdown.get("btc", 0)),
+             "ساختار: {}".format(breakdown.get("structure", 0)),
+             "MTS: {}".format(breakdown.get("mts", 0)),
+             "ناحیه: {}".format(breakdown.get("zone", 0)),
+             "RSI: {}".format(breakdown.get("rsi", 0)),
+             "R/R: {}".format(breakdown.get("rr", 0))])
 
-    # ── کانفیدنس ──
-    if score >= 8.5:   conf = "HIGH"
-    elif score >= 7.0: conf = "MEDIUM"
+    if rr < MIN_RR:
+        return _no(symbol, price,
+            "R/R ناکافی: 1:{} (حداقل 1:{})".format(rr, MIN_RR))
+
+    # Confidence
+    if total >= 9.5:  conf = "HIGH"
+    elif total >= 9.0: conf = "HIGH"
+    elif total >= 8.5: conf = "MEDIUM"
     else:              conf = "LOW"
 
-    lev  = _suggest_leverage(score, rr)
-    prob = _probability(score, rr, btc_score)
+    lev  = _suggest_leverage(total, rr)
+    prob = _probability(total, rr, btc_score)
 
     return Signal(
-        symbol=symbol, direction=direction, timeframe="4H/1H/15m",
-        price=price, score=score, probability=prob, confidence=conf,
-        entry=round(entry,4), stop_loss=round(sl,4),
-        tp1=round(tp1,4), tp2=round(tp2,4), tp3=round(tp3,4),
+        symbol=symbol, direction=direction, timeframe="4H/1H/15m/5m",
+        price=price, score=total, probability=prob, confidence=conf,
+        entry=round(best_signal["entry"], 4),
+        stop_loss=round(best_signal["sl"], 4),
+        tp1=round(best_signal["tp1"], 4),
+        tp2=round(best_signal["tp2"], 4),
+        tp3=round(best_signal["tp3"], 4),
         rr=rr, leverage=lev,
         btc_score=btc_score, btc_bias=btc_bias,
         reasons=reasons,
+        score_breakdown=breakdown,
     )
 
 
 # ─────────────────────────────────────────
-# فرمت خروجی
+# Signal Format
 # ─────────────────────────────────────────
 
 def format_signal_text(sig: Signal) -> str:
     if sig.direction == "NO_SIGNAL":
         return (
-            f"🔴 رد شد — {sig.symbol}\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"دلیل: {sig.reject_reason}\n"
-        )
+            "🔴 رد شد — {}\n"
+            "━━━━━━━━━━━━━━━━\n"
+            "دلیل: {}\n"
+        ).format(sig.symbol, sig.reject_reason)
 
     d = "Long 🟢" if sig.direction == "LONG" else "Short 🔴"
-    conf_emoji = {"HIGH":"🔥","MEDIUM":"⚡","LOW":"🔹"}.get(sig.confidence,"")
+    conf_emoji = {"HIGH": "🔥", "MEDIUM": "⚡", "LOW": "🔹"}.get(sig.confidence, "")
 
     sl_pct = round(abs(sig.entry - sig.stop_loss) / sig.entry * 100, 2) if sig.entry else 0
+    tp_pct = round(abs(sig.tp1 - sig.entry) / sig.entry * 100, 2) if sig.entry else 0
+
+    bd = sig.score_breakdown or {}
     lines = [
-        f"━━━━━━━━━━━━━━━━━━━━",
-        f"✅ ورود مجاز — {sig.symbol}",
-        f"━━━━━━━━━━━━━━━━━━━━",
-        f"",
-        f"Coin:         {sig.symbol}",
-        f"Direction:    {d}",
-        f"Entry:        {sig.entry}",
-        f"Stop Loss:    {sig.stop_loss}  ({sl_pct}%)",
-        f"TP1:          {sig.tp1}",
-        f"TP2:          {sig.tp2}",
-        f"TP3:          {sig.tp3}",
-        f"Risk/Reward:  1:{sig.rr}",
-        f"Score:        {sig.score}/10  {conf_emoji}",
-        f"Probability:  {sig.probability}%",
-        f"Leverage:     {sig.leverage}x پیشنهادی",
-        f"",
-        f"BTC Score:    {sig.btc_score}/10 ({sig.btc_bias})",
-        f"",
-        f"دلیل ورود:",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "✅ AMIR V6 — {}".format(sig.symbol),
+        "━━━━━━━━━━━━━━━━━━━━",
+        "",
+        "Direction:    {}".format(d),
+        "Entry:        {}".format(sig.entry),
+        "Stop Loss:    {}  ({:.2f}%)".format(sig.stop_loss, sl_pct),
+        "Take Profit:  {}  ({:.2f}%)".format(sig.tp1, tp_pct),
+        "Risk/Reward:  1:{}".format(sig.rr),
+        "",
+        "Score:        {}/10  {}".format(sig.score, conf_emoji),
+        "Probability:  {}%".format(sig.probability),
+        "Leverage:     {}x پیشنهادی".format(sig.leverage),
+        "",
+        "━━ امتیاز جزئی ━━",
+        "BTC:      {}/2".format(bd.get("btc", "?")),
+        "ساختار:   {}/2".format(bd.get("structure", "?")),
+        "MTS:      {}/2".format(bd.get("mts", "?")),
+        "ناحیه:    {}/1.5".format(bd.get("zone", "?")),
+        "RSI:      {}/1".format(bd.get("rsi", "?")),
+        "R/R:      {}/1.5".format(bd.get("rr", "?")),
+        "",
+        "BTC Score:    {}/10 ({})".format(sig.btc_score, sig.btc_bias),
+        "",
+        "دلیل ورود:",
     ]
 
-    for r in sig.reasons[:6]:
-        lines.append(f"  {r}")
+    for r in sig.reasons[:8]:
+        lines.append("  {}".format(r))
 
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    np.random.seed(42)
-    n = 300
-    def mk(start, tr="up"):
-        p = start + np.cumsum(np.abs(np.random.randn(n))*60) if tr=="up" else start - np.cumsum(np.abs(np.random.randn(n))*60)
-        v = np.abs(np.random.randn(n)*1000+6000)
-        return pd.DataFrame({"time":pd.date_range("2024-01-01",periods=n,freq="5min"),
-            "open":p-30,"high":p+80,"low":p-80,"close":p,"baseVol":v,"quoteVol":v*p})
-
-    btc = analyze_btc(mk(58000), mk(59500), mk(60200))
-    print(f"BTC: نمره {btc['score']}/10 — {btc['bias']}")
-
-    sig = analyze("BTCUSDT", mk(58000), mk(59500), mk(60200), mk(60400),
-                  btc_bias=btc["bias"], btc_score=btc["score"])
-    print(format_signal_text(sig))

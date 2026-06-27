@@ -78,9 +78,26 @@ def detect_bos(df: pd.DataFrame) -> dict:
         bos_bear  = True
         bos_level = swings["last_low"]
 
+    choch_bull = False
+    choch_bear = False
+    swing_highs = swings["swing_highs"]
+    swing_lows = swings["swing_lows"]
+    if len(swing_lows) >= 2 and len(swing_highs) >= 1:
+        prev_low = swing_lows[-2]["price"]
+        last_low_val = swing_lows[-1]["price"]
+        if last_low_val > prev_low and bos_bull:
+            choch_bull = True
+    if len(swing_highs) >= 2 and len(swing_lows) >= 1:
+        prev_high = swing_highs[-2]["price"]
+        last_high_val = swing_highs[-1]["price"]
+        if last_high_val < prev_high and bos_bear:
+            choch_bear = True
+
     return {
         "bos_bullish": bos_bull,
         "bos_bearish": bos_bear,
+        "choch_bullish": choch_bull,
+        "choch_bearish": choch_bear,
         "bos_level":   bos_level,
         "last_high":   swings["last_high"],
         "last_low":    swings["last_low"],

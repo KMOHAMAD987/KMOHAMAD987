@@ -132,12 +132,31 @@ def rsi_signal(df: pd.DataFrame) -> dict:
         zone = "overbought"
         momentum = "bearish"   # احتمال پولبک
 
+    divergence = None
+    if len(df) >= 30:
+        lows_idx = []
+        highs_idx = []
+        for i in range(5, len(df) - 5):
+            if df["low"].iloc[i] == df["low"].iloc[i-5:i+6].min():
+                lows_idx.append(i)
+            if df["high"].iloc[i] == df["high"].iloc[i-5:i+6].max():
+                highs_idx.append(i)
+        if len(lows_idx) >= 2:
+            i1, i2 = lows_idx[-2], lows_idx[-1]
+            if df["low"].iloc[i2] < df["low"].iloc[i1] and df["rsi"].iloc[i2] > df["rsi"].iloc[i1]:
+                divergence = "bullish"
+        if divergence is None and len(highs_idx) >= 2:
+            i1, i2 = highs_idx[-2], highs_idx[-1]
+            if df["high"].iloc[i2] > df["high"].iloc[i1] and df["rsi"].iloc[i2] < df["rsi"].iloc[i1]:
+                divergence = "bearish"
+
     return {
-        "value":    round(rsi, 2),
-        "prev":     round(prev_rsi, 2),
-        "zone":     zone,
-        "momentum": momentum,
-        "rising":   rsi > prev_rsi,
+        "value":      round(rsi, 2),
+        "prev":       round(prev_rsi, 2),
+        "zone":       zone,
+        "momentum":   momentum,
+        "rising":     rsi > prev_rsi,
+        "divergence": divergence,
     }
 
 
