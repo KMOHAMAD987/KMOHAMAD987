@@ -1,125 +1,86 @@
 {
   "trades": {
-    "BTCUSDT_20260605_115823": {
-      "id": "BTCUSDT_20260605_115823",
-      "symbol": "BTCUSDT",
-      "direction": "LONG",
-      "timeframe": "15m/5m",
-      "score": 8,
-      "confidence": "HIGH",
-      "entry": 65000.0,
-      "stop_loss": 64000.0,
-      "tp1": 66500.0,
-      "tp2": 67500.0,
-      "tp3": 69000.0,
-      "rr": 2.5,
-      "opened_at": "2026-06-05T11:58:23.429574",
-      "closed_at": null,
-      "status": "TP1",
-      "hit_tp1": true,
-      "hit_tp2": false,
-      "hit_tp3": false,
-      "hit_sl": false,
-      "exit_price": null,
-      "pnl_r": 1.5,
-      "reasons": [
-        "✅ روند صعودی",
-        "✅ VWAP",
-        "✅ OB"
-      ],
-      "failed": [
-        "❌ BOS"
-      ]
-    },
-    "ETHUSDT_20260605_115823": {
-      "id": "ETHUSDT_20260605_115823",
+    "ETHUSDT_20260627_110936": {
+      "id": "ETHUSDT_20260627_110936",
       "symbol": "ETHUSDT",
-      "direction": "SHORT",
-      "timeframe": "15m/5m",
-      "score": 7,
-      "confidence": "MEDIUM",
-      "entry": 3500.0,
-      "stop_loss": 3560.0,
-      "tp1": 3410.0,
-      "tp2": 3350.0,
-      "tp3": 3260.0,
-      "rr": 2.3,
-      "opened_at": "2026-06-05T11:58:23.430974",
-      "closed_at": "2026-06-05T11:58:23.431661",
+      "direction": "LONG",
+      "timeframe": "4H/1H/15m",
+      "score": 8.5,
+      "confidence": "HIGH",
+      "entry": 3800.0,
+      "stop_loss": 3730.0,
+      "tp1": 3870.0,
+      "tp2": 3940.0,
+      "tp3": 4045.0,
+      "rr": 2.0,
+      "opened_at": "2026-06-27T11:09:36.811050",
+      "closed_at": "2026-06-27T11:09:36.812767",
       "status": "SL",
-      "hit_tp1": false,
+      "hit_tp1": true,
       "hit_tp2": false,
       "hit_tp3": false,
       "hit_sl": true,
-      "exit_price": 3570.0,
-      "pnl_r": -1.0,
+      "exit_price": 3795.0,
+      "pnl_r": 0.0,
       "reasons": [
-        "✅ نزولی",
-        "✅ زیر VWAP"
+        "test"
       ],
-      "failed": [
-        "❌ BOS"
-      ]
+      "failed": []
     },
-    "BNBUSDT_20260614_205455": {
-      "id": "BNBUSDT_20260614_205455",
-      "symbol": "BNBUSDT",
+    "BTCUSDT_20260627_110936": {
+      "id": "BTCUSDT_20260627_110936",
+      "symbol": "BTCUSDT",
       "direction": "SHORT",
       "timeframe": "4H/1H/15m",
-      "score": 8.8,
+      "score": 8.0,
       "confidence": "MEDIUM",
-      "entry": 605.53,
-      "stop_loss": 610.218,
-      "tp1": 600.842,
-      "tp2": 596.154,
-      "tp3": 589.122,
+      "entry": 107000.0,
+      "stop_loss": 108500.0,
+      "tp1": 105500.0,
+      "tp2": 104000.0,
+      "tp3": 101750.0,
       "rr": 2.0,
-      "opened_at": "2026-06-14T20:54:55.948982",
-      "closed_at": "2026-06-14T20:54:55.949615",
-      "status": "TP3",
+      "opened_at": "2026-06-27T11:09:36.813136",
+      "closed_at": "2026-06-27T11:09:36.814288",
+      "status": "SL",
       "hit_tp1": true,
       "hit_tp2": true,
-      "hit_tp3": true,
-      "hit_sl": false,
-      "exit_price": 588.0,
-      "pnl_r": 4.0,
-      "reasons": [],
+      "hit_tp3": false,
+      "hit_sl": true,
+      "exit_price": 105600.0,
+      "pnl_r": 1.5,
+      "reasons": [
+        "test"
+      ],
       "failed": []
     }
   },
   "stats": {
-    "total": 3,
+    "total": 2,
     "open": 0,
-    "closed": 3,
+    "closed": 2,
     "tp1_hit": 2,
     "tp2_hit": 1,
-    "tp3_hit": 1,
-    "sl_hit": 1,
+    "tp3_hit": 0,
+    "sl_hit": 2,
     "expired": 0,
-    "winrate_tp1": 66.7,
-    "winrate_tp2": 33.3,
+    "winrate_tp1": 100.0,
+    "winrate_tp2": 50.0,
     "avg_rr": 1.5,
     "by_symbol": {
+      "ETHUSDT": {
+        "total": 1,
+        "tp1": 1,
+        "tp2": 0,
+        "sl": 1,
+        "winrate": 50.0
+      },
       "BTCUSDT": {
         "total": 1,
         "tp1": 1,
-        "tp2": 0,
-        "sl": 0,
-        "winrate": 100.0
-      },
-      "ETHUSDT": {
-        "total": 1,
-        "tp1": 0,
-        "tp2": 0,
-        "sl": 1,
-        "winrate": 0.0
-      },
-      "BNBUSDT": {
-        "total": 1,
-        "tp1": 1,
         "tp2": 1,
-        "sl": 0,
-        "winrate": 100.0
+        "sl": 1,
+        "winrate": 50.0
       }
     },
     "by_direction": {
@@ -128,13 +89,13 @@
         "wins": 1
       },
       "SHORT": {
-        "total": 2,
+        "total": 1,
         "wins": 1
       }
     },
     "by_confidence": {
       "HIGH": 1,
-      "MEDIUM": 2,
+      "MEDIUM": 1,
       "LOW": 0
     }
   }
