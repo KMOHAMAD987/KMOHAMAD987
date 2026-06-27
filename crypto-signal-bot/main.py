@@ -132,7 +132,11 @@ def scan_symbol(symbol: str, btc_bias: str, btc_score: float = 5.0) -> None:
 
     # فیلتر سیگنال
     if signal.direction == "NO_SIGNAL":
-        print(f"  ➖ {symbol}: بدون سیگنال (امتیاز {signal.score}/10)")
+        detail = signal.reject_reason or "نامشخص"
+        failed_info = ""
+        if signal.failed:
+            failed_info = " | " + " / ".join(str(f) for f in signal.failed[:4])
+        print(f"  ➖ {symbol}: {detail}{failed_info}")
         return
 
     if signal.score < MIN_SCORE:
