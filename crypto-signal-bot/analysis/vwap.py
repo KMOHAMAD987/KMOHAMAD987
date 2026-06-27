@@ -20,17 +20,14 @@ def add_vwap(df: pd.DataFrame) -> pd.DataFrame:
 
     # برای هر session (روز) VWAP جداگانه حساب می‌کنیم
     df["cum_vol"]    = df.groupby("date")["baseVol"].cumsum()
-    df["cum_tp_vol"] = df.groupby("date").apply(
-        lambda g: (g["hlc3"] * g["baseVol"]).cumsum(), include_groups=False
-    ).reset_index(level=0, drop=True)
+    df["tp_vol"]     = df["hlc3"] * df["baseVol"]
+    df["cum_tp_vol"] = df.groupby("date")["tp_vol"].cumsum()
 
     df["vwap"] = df["cum_tp_vol"] / df["cum_vol"]
 
     # VWAP Bands (انحراف معیار)
-    df["vwap_var"] = df.groupby("date").apply(
-        lambda g: ((g["hlc3"] - g["vwap"]) ** 2 * g["baseVol"]).cumsum() / g["cum_vol"],
-        include_groups=False
-    ).reset_index(level=0, drop=True)
+    df["vwap_dev_sq"] = (df["hlc3"] - df["vwap"]) ** 2 * df["baseVol"]
+    df["vwap_var"]    = df.groupby("date")["vwap_dev_sq"].cumsum() / df["cum_vol"]
 
     df["vwap_std"] = np.sqrt(df["vwap_var"])
     df["vwap_upper1"] = df["vwap"] + df["vwap_std"]
@@ -39,7 +36,7 @@ def add_vwap(df: pd.DataFrame) -> pd.DataFrame:
     df["vwap_lower2"] = df["vwap"] - 2 * df["vwap_std"]
 
     # پاک‌سازی ستون‌های موقت
-    df.drop(columns=["hlc3", "date", "cum_vol", "cum_tp_vol", "vwap_var"], inplace=True)
+    df.drop(columns=["hlc3", "date", "cum_vol", "cum_tp_vol", "tp_vol", "vwap_var", "vwap_dev_sq"], inplace=True)
 
     return df
 
